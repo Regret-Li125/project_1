@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-desktop/
+*.log
+*.exe
+*.msi
+*.blockmap
+release/
+.DS_Store
+Thumbs.db

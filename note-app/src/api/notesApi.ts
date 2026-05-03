@@ -1,0 +1,57 @@
+import type { Note, Folder } from '../types/note';
+
+type NotesDesktopApi = {
+  loadNotes: () => Promise<{ notes: Note[]; folders: Folder[] }>;
+  saveNotes: (notes: Note[], folders?: Folder[]) => Promise<{ success: boolean; error?: string }>;
+  getStorageInfo: () => Promise<{ path: string }>;
+};
+
+declare global {
+  interface Window {
+    notesApi: NotesDesktopApi;
+  }
+}
+
+export const notesApi: NotesDesktopApi = {
+  loadNotes: async () => {
+    if (window.notesApi) {
+      return window.notesApi.loadNotes();
+    }
+    // Fallback for development without Electron
+    try {
+      const data = localStorage.getItem('personal_knowledge_notes');
+      if (!data) return { notes: [], folders: [] };
+      const parsed = JSON.parse(data);
+      return {
+        notes: Array.isArray(parsed.notes) ? parsed.notes : [],
+        folders: Array.isArray(parsed.folders) ? parsed.folders : [],
+      };
+    } catch {
+      return { notes: [], folders: [] };
+    }
+  },
+
+  saveNotes: async (notes: Note[], folders: Folder[] = []) => {
+    if (window.notesApi) {
+      return window.notesApi.saveNotes(notes, folders);
+    }
+    // Fallback for development without Electron
+    try {
+      localStorage.setItem('personal_knowledge_notes', JSON.stringify({
+        version: 1,
+        notes,
+        folders,
+      }));
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  },
+
+  getStorageInfo: async () => {
+    if (window.notesApi) {
+      return window.notesApi.getStorageInfo();
+    }
+    return { path: 'localStorage (development mode)' };
+  },
+};
