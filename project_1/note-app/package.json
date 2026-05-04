@@ -1,0 +1,77 @@
+{
+  "name": "personal-knowledge-notes",
+  "productName": "个人知识库",
+  "description": "纯本地运行的桌面端 Markdown 知识库与笔记助手",
+  "author": "Regrettt",
+  "private": true,
+  "main": "electron/main.cjs",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --configLoader native",
+    "build": "tsc -b && vite build --configLoader native",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "electron:dev": "concurrently \"vite --configLoader native\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:build": "npm run build && electron-builder --publish=never",
+    "electron:package": "npm run build && electron-builder --publish=never"
+  },
+  "build": {
+    "appId": "com.local.personal-knowledge-notes",
+    "productName": "个人知识库",
+    "directories": {
+      "output": "dist-desktop"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "个人知识库"
+    },
+    "portable": {
+      "artifactName": "个人知识库-便携版.exe"
+    }
+  },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "react-markdown": "^10.1.0"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^3.0.0",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.12.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^8.0.0",
+    "electron": "^28.0.0",
+    "electron-builder": "^25.1.8",
+    "eslint": "^10.2.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.5.0",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.58.2",
+    "vite": "^8.0.10",
+    "vitest": "^4.1.5",
+    "wait-on": "^7.0.0"
+  }
+}

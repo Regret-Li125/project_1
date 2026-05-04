@@ -1,0 +1,158 @@
+/* 速记组件 */
+.quick-capture-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.quick-capture {
+  width: 600px;
+  max-width: 90vw;
+  max-height: 80vh;
+  background-color: var(--content-bg);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.quick-capture-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.quick-capture-header h2 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.quick-capture-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.quick-capture-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.quick-capture-tab {
+  flex: 1;
+  padding: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+
+.quick-capture-tab.active {
+  color: var(--primary-color);
+  border-bottom: 2px solid var(--primary-color);
+}
+
+.quick-capture-content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.quick-capture-field {
+  margin-bottom: 16px;
+}
+
+.quick-capture-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.quick-capture-field input,
+.quick-capture-field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.quick-capture-field input:focus,
+.quick-capture-field textarea:focus {
+  border-color: var(--primary-color);
+}
+
+.template-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.template-option {
+  padding: 8px 12px;
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.template-option.selected {
+  background-color: var(--selected-bg);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.template-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+.quick-capture-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.quick-capture-cancel {
+  padding: 8px 16px;
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.quick-capture-save {
+  padding: 8px 16px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.quick-capture-save:disabled {
+  background-color: var(--text-muted);
+  cursor: not-allowed;
+}

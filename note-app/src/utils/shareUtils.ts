@@ -48,6 +48,23 @@ export function collectShareScope(
   };
 }
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function sanitizeUrl(url: string): string {
+  const trimmed = url.trim();
+  if (/^https?:\/\//i.test(trimmed)) {
+    return escapeHtml(trimmed);
+  }
+  return '#';
+}
+
 export function sanitizeFileName(name: string): string {
   return name
     .replace(/[<>:"/\\|?*]/g, '_')
@@ -131,10 +148,10 @@ export function generateNoteHtml(note: Note, allNotes: Note[]): string {
         const targetNote = allNotes.find(
           (n) => n.title.toLowerCase() === targetTitle.toLowerCase()
         );
-        const text = displayText || targetTitle;
+        const text = escapeHtml(displayText || targetTitle);
         if (targetNote) {
           const fileName = sanitizeFileName(targetNote.title || 'untitled') + '.html';
-          return `<a href="${fileName}" class="internal-link">${text}</a>`;
+          return `<a href="${escapeHtml(fileName)}" class="internal-link">${text}</a>`;
         }
         return `<span class="unresolved-link">${text}</span>`;
       }
@@ -142,39 +159,39 @@ export function generateNoteHtml(note: Note, allNotes: Note[]): string {
 
     processed = processed.replace(
       /^### (.*$)/gm,
-      '<h3>$1</h3>'
+      (_, text) => `<h3>${escapeHtml(text)}</h3>`
     );
     processed = processed.replace(
       /^## (.*$)/gm,
-      '<h2>$1</h2>'
+      (_, text) => `<h2>${escapeHtml(text)}</h2>`
     );
     processed = processed.replace(
       /^# (.*$)/gm,
-      '<h1>$1</h1>'
+      (_, text) => `<h1>${escapeHtml(text)}</h1>`
     );
     processed = processed.replace(
       /\*\*(.*?)\*\*/g,
-      '<strong>$1</strong>'
+      (_, text) => `<strong>${escapeHtml(text)}</strong>`
     );
     processed = processed.replace(
       /\*(.*?)\*/g,
-      '<em>$1</em>'
+      (_, text) => `<em>${escapeHtml(text)}</em>`
     );
     processed = processed.replace(
       /`(.*?)`/g,
-      '<code>$1</code>'
+      (_, text) => `<code>${escapeHtml(text)}</code>`
     );
     processed = processed.replace(
       /^- (.*$)/gm,
-      '<li>$1</li>'
+      (_, text) => `<li>${escapeHtml(text)}</li>`
     );
     processed = processed.replace(
       /^\d+\. (.*$)/gm,
-      '<li>$1</li>'
+      (_, text) => `<li>${escapeHtml(text)}</li>`
     );
     processed = processed.replace(
       /^> (.*$)/gm,
-      '<blockquote>$1</blockquote>'
+      (_, text) => `<blockquote>${escapeHtml(text)}</blockquote>`
     );
     processed = processed.replace(
       /\n\n/g,
@@ -189,7 +206,7 @@ export function generateNoteHtml(note: Note, allNotes: Note[]): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${note.title || '未命名笔记'}</title>
+  <title>${escapeHtml(note.title || '未命名笔记')}</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -260,12 +277,12 @@ export function generateNoteHtml(note: Note, allNotes: Note[]): string {
   </style>
 </head>
 <body>
-  <h1>${note.title || '未命名笔记'}</h1>
-  ${note.sourceUrl ? `<p class="source-url">来源: <a href="${note.sourceUrl}">${note.sourceUrl}</a></p>` : ''}
+  <h1>${escapeHtml(note.title || '未命名笔记')}</h1>
+  ${note.sourceUrl ? `<p class="source-url">来源: <a href="${sanitizeUrl(note.sourceUrl)}">${escapeHtml(note.sourceUrl)}</a></p>` : ''}
   ${processContent(note.content)}
   ${note.tags.length > 0 ? `
   <div class="tags">
-    ${note.tags.map((tag) => `<span class="tag">${tag}</span>`).join(' ')}
+    ${note.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join(' ')}
   </div>
   ` : ''}
 </body>
@@ -344,14 +361,14 @@ export function generateIndexHtml(notes: Note[]): string {
         (note) => `
     <li class="note-item">
       <a href="notes/${sanitizeFileName(note.title || 'untitled')}.html" class="note-link">
-        ${note.title || '未命名笔记'}
+        ${escapeHtml(note.title || '未命名笔记')}
       </a>
       <div class="note-meta">
         更新时间: ${new Date(note.updatedAt).toLocaleString('zh-CN')}
       </div>
       ${note.tags.length > 0 ? `
       <div class="note-tags">
-        ${note.tags.map((tag) => `<span class="tag">${tag}</span>`).join(' ')}
+        ${note.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join(' ')}
       </div>
       ` : ''}
     </li>`

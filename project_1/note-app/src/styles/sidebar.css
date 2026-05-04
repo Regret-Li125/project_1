@@ -1,0 +1,263 @@
+/* 侧边栏 */
+.sidebar {
+  width: 240px;
+  background-color: var(--sidebar-bg);
+  border-right: 1px solid var(--border-color);
+  overflow-y: auto;
+  padding: 16px 0;
+  flex-shrink: 0;
+}
+
+.sidebar-section {
+  padding: 0 16px;
+  margin-bottom: 16px;
+}
+
+.sidebar-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  padding: 0 8px;
+}
+
+.sidebar-item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: background-color 0.2s;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-item:hover {
+  background-color: var(--hover-bg);
+}
+
+.sidebar-item.active {
+  background-color: var(--selected-bg);
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+.sidebar-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 8px 12px;
+}
+
+.sidebar-empty .empty-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color);
+  margin-bottom: 4px;
+}
+
+.sidebar-empty .empty-description {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 0;
+}
+
+.recent-list,
+.review-list,
+.tag-list {
+  list-style: none;
+}
+
+/* 标签列表 */
+.tag-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 6px 12px;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.tag-button:hover {
+  background-color: var(--hover-bg);
+}
+
+.tag-button.active {
+  background-color: var(--selected-bg);
+  color: var(--primary-color);
+}
+
+.tag-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  background-color: var(--tag-bg);
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+/* 随机复习按钮 */
+.random-review-btn {
+  width: 100%;
+  padding: 10px 16px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.random-review-btn:hover:not(:disabled) {
+  background-color: var(--primary-hover);
+}
+
+.random-review-btn:disabled {
+  background-color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* 文件树 */
+.file-tree {
+  border-bottom: 1px solid var(--border-color);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.file-tree-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: var(--hover-bg);
+}
+
+.file-tree-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.new-folder-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 4px;
+}
+
+.file-tree-content {
+  padding: 4px 0;
+}
+
+.file-tree-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.file-tree-item:hover {
+  background-color: var(--hover-bg);
+}
+
+.file-tree-item.selected {
+  background-color: var(--selected-bg);
+  color: var(--primary-color);
+}
+
+.file-tree-item.folder {
+  font-weight: 500;
+}
+
+.file-tree-item.note {
+  font-size: 13px;
+}
+
+.folder-icon,
+.note-icon {
+  margin-right: 6px;
+  font-size: 14px;
+}
+
+.folder-name,
+.note-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.folder-actions {
+  display: none;
+  gap: 2px;
+}
+
+.file-tree-item:hover .folder-actions {
+  display: flex;
+}
+
+.folder-action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 12px;
+  border-radius: 3px;
+}
+
+.folder-action-btn:hover {
+  background-color: var(--tag-bg);
+}
+
+.folder-action-btn.danger:hover {
+  background-color: #fdecea;
+  color: var(--danger-color);
+}
+
+.folder-rename-input {
+  flex: 1;
+  padding: 2px 4px;
+  border: 1px solid var(--primary-color);
+  border-radius: 3px;
+  font-size: 13px;
+  outline: none;
+}
+
+.file-tree-empty {
+  padding: 12px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* 拖放样式 */
+.file-tree-item[draggable="true"] {
+  cursor: grab;
+}
+
+.file-tree-item[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.file-tree-item.drop-target {
+  background-color: var(--selected-bg);
+  border: 2px dashed var(--primary-color);
+}

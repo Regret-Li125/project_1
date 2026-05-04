@@ -1,0 +1,80 @@
+/* 命令面板 */
+.command-palette-overlay,
+.quick-switcher-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 20%;
+  z-index: 1000;
+}
+
+.command-palette,
+.quick-switcher {
+  width: 500px;
+  max-width: 90vw;
+  background-color: var(--content-bg);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.command-palette-input,
+.quick-switcher-input {
+  width: 100%;
+  padding: 16px 20px;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 16px;
+  outline: none;
+  background: transparent;
+}
+
+.command-palette-list,
+.quick-switcher-list {
+  list-style: none;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.command-palette-item,
+.quick-switcher-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: background-color 0.1s;
+}
+
+.command-palette-item:hover,
+.quick-switcher-item:hover,
+.command-palette-item.selected,
+.quick-switcher-item.selected {
+  background-color: var(--selected-bg);
+}
+
+.command-label {
+  font-size: 14px;
+  color: var(--text-color);
+}
+
+.command-shortcut {
+  font-size: 12px;
+  color: var(--text-muted);
+  background-color: var(--tag-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.command-palette-empty,
+.quick-switcher-empty {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-muted);
+}
