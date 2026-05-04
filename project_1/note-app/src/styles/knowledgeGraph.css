@@ -1,0 +1,109 @@
+/* 知识图谱 */
+.knowledge-graph-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.knowledge-graph {
+  width: 90vw;
+  height: 80vh;
+  max-width: 1000px;
+  max-height: 700px;
+  background-color: var(--content-bg);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.graph-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.graph-header h2 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.graph-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.graph-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.graph-close-btn {
+  padding: 6px 12px;
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.graph-svg {
+  flex: 1;
+  background-color: var(--bg-color);
+}
+
+.graph-edge {
+  stroke: var(--border-color);
+  stroke-width: 1.5;
+}
+
+.graph-node {
+  cursor: pointer;
+}
+
+.graph-node circle {
+  fill: var(--primary-color);
+  transition: all 0.2s;
+}
+
+.graph-node.selected circle {
+  fill: var(--primary-hover);
+  stroke: var(--text-color);
+  stroke-width: 2;
+}
+
+.graph-node.isolated circle {
+  fill: var(--text-muted);
+}
+
+.graph-node:hover circle {
+  fill: var(--primary-hover);
+}
+
+.graph-node-label {
+  font-size: 10px;
+  fill: var(--text-color);
+}
+
+/* 知识图谱空状态 */
+.graph-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 60px 20px;
+  text-align: center;
+}

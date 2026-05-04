@@ -1,0 +1,381 @@
+/* 分享确认弹窗样式 */
+.share-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.share-confirm-dialog {
+  width: 500px;
+  max-width: 90vw;
+  background-color: var(--content-bg);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.share-confirm-title {
+  padding: 20px 24px;
+  margin: 0;
+  font-size: 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.share-confirm-content {
+  padding: 24px;
+}
+
+.share-confirm-section {
+  margin-bottom: 20px;
+}
+
+.share-confirm-section:last-child {
+  margin-bottom: 0;
+}
+
+.share-confirm-section h3 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.share-confirm-list {
+  margin: 0;
+  padding-left: 20px;
+  list-style: disc;
+}
+
+.share-confirm-list li {
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: var(--text-color);
+}
+
+.share-confirm-list li strong {
+  color: var(--primary-color);
+}
+
+.share-format-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.share-format-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  background-color: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.share-format-option:hover {
+  border-color: var(--primary-color);
+}
+
+.share-format-option input[type="radio"] {
+  margin-top: 2px;
+}
+
+.share-format-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.share-format-name {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.share-format-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.share-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+}
+
+.share-confirm-cancel {
+  padding: 10px 20px;
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-color);
+  transition: background-color 0.2s;
+}
+
+.share-confirm-cancel:hover {
+  background-color: var(--hover-bg);
+}
+
+.share-confirm-submit {
+  padding: 10px 20px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.share-confirm-submit:hover {
+  background-color: var(--primary-hover);
+}
+
+/* 局域网分享对话框样式 */
+.local-share-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.local-share-dialog {
+  width: 550px;
+  max-width: 90vw;
+  background-color: var(--content-bg);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.local-share-title {
+  padding: 20px 24px;
+  margin: 0;
+  font-size: 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.local-share-content {
+  padding: 24px;
+}
+
+.local-share-error {
+  padding: 12px;
+  background-color: #fdecea;
+  color: var(--danger-color);
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.local-share-info {
+  margin-bottom: 20px;
+}
+
+.local-share-info h3 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.local-share-info ul {
+  margin: 0;
+  padding-left: 20px;
+  list-style: disc;
+}
+
+.local-share-info li {
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.local-share-active {
+  margin-top: 20px;
+}
+
+.local-share-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--text-muted);
+}
+
+.status-dot.active {
+  background-color: #22c55e;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.local-share-urls {
+  margin-bottom: 20px;
+}
+
+.local-share-url {
+  margin-bottom: 12px;
+}
+
+.local-share-url label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.local-share-url a {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-size: 14px;
+  word-break: break-all;
+}
+
+.local-share-url a:hover {
+  text-decoration: underline;
+}
+
+.local-share-warning {
+  padding: 16px;
+  background-color: #fef3c7;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.local-share-warning p {
+  margin: 0 0 8px 0;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.local-share-warning ul {
+  margin: 0;
+  padding-left: 20px;
+  list-style: disc;
+}
+
+.local-share-warning li {
+  margin-bottom: 4px;
+  font-size: 13px;
+  color: #92400e;
+}
+
+.local-share-stop {
+  width: 100%;
+  padding: 12px;
+  background-color: var(--danger-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.local-share-stop:hover {
+  background-color: #dc2626;
+}
+
+.local-share-start {
+  margin-top: 16px;
+}
+
+.local-share-start p {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.local-share-security {
+  padding: 16px;
+  background-color: var(--bg-color);
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.local-share-security p {
+  margin: 0 0 8px 0;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.local-share-security ul {
+  margin: 0;
+  padding-left: 20px;
+  list-style: disc;
+}
+
+.local-share-security li {
+  margin-bottom: 4px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.local-share-start-btn {
+  width: 100%;
+  padding: 12px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.local-share-start-btn:hover {
+  background-color: var(--primary-hover);
+}
+
+.local-share-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+}
+
+.local-share-close {
+  padding: 10px 20px;
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-color);
+  transition: background-color 0.2s;
+}
+
+.local-share-close:hover {
+  background-color: var(--hover-bg);
+}

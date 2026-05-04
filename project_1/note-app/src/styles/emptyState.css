@@ -1,0 +1,66 @@
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-title {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-color);
+  margin-bottom: 8px;
+}
+
+.empty-description {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+  max-width: 300px;
+}
+
+.empty-message {
+  font-size: 16px;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+.empty-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.empty-action,
+.empty-action-btn {
+  padding: 10px 20px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.empty-action:hover,
+.empty-action-btn:hover {
+  background-color: var(--primary-hover);
+}
+
+.empty-action-btn.secondary {
+  background-color: var(--tag-bg);
+  color: var(--text-color);
+}
+
+.empty-action-btn.secondary:hover {
+  background-color: var(--hover-bg);
+}
