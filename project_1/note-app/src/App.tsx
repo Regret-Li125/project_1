@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useDeferredValue } from 'react';
-import type { Note, Folder, ShareScope } from './types/note';
+import type { Note, Folder } from './types/note';
 import { filterNotes, getTagStats, getRecentNotes } from './utils/noteSearch';
 import { pickReviewNotes, pickRandomNote } from './utils/reviewPicker';
 
@@ -31,7 +31,10 @@ function App() {
   } = useNotes();
 
   const toast = useToast();
-  toastRef.current = toast;
+
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast, toastRef]);
 
   const share = useShare(notes, folders, toast);
 
