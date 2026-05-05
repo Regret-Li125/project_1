@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useCallback, useRef } from 'react';
 import type { Note, LinkGraph } from '../types/note';
 import { parseLinks } from '../utils/linkParser';
 
@@ -115,7 +115,7 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
 }) => {
   const [showIsolated, setShowIsolated] = useState(true);
   const svgRef = useRef<SVGSVGElement>(null);
-  const [viewBox, setViewBox] = useState({ width: 800, height: 600 });
+  const viewBox = useMemo(() => ({ width: 800, height: 600 }), []);
 
   const graph = useMemo<LinkGraph>(() => {
     const nodes = notes.map((note) => ({
@@ -170,14 +170,13 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
     [filteredGraph, viewBox]
   );
 
-  // Mutable positions ref + render trigger for drag updates
-  const positionsRef = useRef<Map<string, Vec2>>(computedPositions);
-  const [, forceRender] = useState(0);
+  const [dragPositions, setDragPositions] = useState<Map<string, Vec2>>(new Map());
 
-  // Sync ref when computed positions change (new layout)
-  if (positionsRef.current !== computedPositions) {
-    positionsRef.current = computedPositions;
-  }
+  const positions = useMemo(() => {
+    const merged = new Map(computedPositions);
+    for (const [id, pos] of dragPositions) merged.set(id, pos);
+    return merged;
+  }, [computedPositions, dragPositions]);
 
   // Drag state
   const [dragging, setDragging] = useState<string | null>(null);
@@ -185,7 +184,7 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
 
   const handleMouseDown = useCallback((nodeId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const pos = positionsRef.current.get(nodeId);
+    const pos = positions.get(nodeId);
     if (!pos) return;
     const svg = svgRef.current;
     if (!svg) return;
@@ -197,7 +196,7 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
       y: (e.clientY - rect.top) * scaleY - pos.y,
     };
     setDragging(nodeId);
-  }, [viewBox]);
+  }, [positions, viewBox]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!dragging) return;
@@ -208,17 +207,20 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
     const scaleY = viewBox.height / rect.height;
     const x = (e.clientX - rect.left) * scaleX - dragOffset.current.x;
     const y = (e.clientY - rect.top) * scaleY - dragOffset.current.y;
-    const pos = positionsRef.current.get(dragging);
-    if (pos) {
-      pos.x = Math.max(20, Math.min(viewBox.width - 20, x));
-      pos.y = Math.max(20, Math.min(viewBox.height - 20, y));
-      forceRender((n) => n + 1);
-    }
+    setDragPositions((prev) => {
+      const next = new Map(prev);
+      next.set(dragging, {
+        x: Math.max(20, Math.min(viewBox.width - 20, x)),
+        y: Math.max(20, Math.min(viewBox.height - 20, y)),
+      });
+      return next;
+    });
   }, [dragging, viewBox]);
 
   const handleMouseUp = useCallback(() => {
     setDragging(null);
   }, []);
+
 
   return (
     <div className="knowledge-graph-overlay">
@@ -260,8 +262,8 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
             onMouseLeave={handleMouseUp}
           >
             {filteredGraph.edges.map((edge, i) => {
-              const source = positionsRef.current.get(edge.source);
-              const target = positionsRef.current.get(edge.target);
+              const source = positions.get(edge.source);
+              const target = positions.get(edge.target);
               if (!source || !target) return null;
 
               return (
@@ -277,7 +279,7 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
             })}
 
             {filteredGraph.nodes.map((node) => {
-              const pos = positionsRef.current.get(node.id);
+              const pos = positions.get(node.id);
               if (!pos) return null;
               const isSelected = node.id === selectedNoteId;
               const hasLinks = graph.edges.some(
