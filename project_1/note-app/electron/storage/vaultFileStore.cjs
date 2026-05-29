@@ -6,6 +6,18 @@ const yaml = require('js-yaml');
 
 class VaultFileStore {
   constructor() {
+    this._initialized = false;
+    this.vaultPath = null;
+    this.metaPath = null;
+    this.notesDir = null;
+    this.foldersDir = null;
+    this.legacyPath = null;
+    this.legacyBackupPath = null;
+    this.fileIndex = new Map(); // noteId -> vault-relative path
+  }
+
+  _ensureInitialized() {
+    if (this._initialized) return;
     const baseDir = path.join(app.getPath('userData'), 'personal-knowledge-notes');
     this.vaultPath = path.join(baseDir, 'vault');
     this.metaPath = path.join(this.vaultPath, '.vault-meta.json');
@@ -13,10 +25,11 @@ class VaultFileStore {
     this.foldersDir = path.join(this.vaultPath, 'folders');
     this.legacyPath = path.join(baseDir, 'notes.json');
     this.legacyBackupPath = path.join(baseDir, 'notes.json.bak');
-    this.fileIndex = new Map(); // noteId -> vault-relative path
+    this._initialized = true;
   }
 
   getStoragePath() {
+    this._ensureInitialized();
     return this.vaultPath;
   }
 
@@ -341,6 +354,7 @@ class VaultFileStore {
   // ── Public API ────────────────────────────────────────────────────
 
   async loadNotes() {
+    this._ensureInitialized();
     await this.ensureDirectories();
 
     const legacyExists = await this.fileExists(this.legacyPath);
@@ -359,6 +373,7 @@ class VaultFileStore {
   }
 
   async saveNotes(notes, folders = []) {
+    this._ensureInitialized();
     await this.ensureDirectories();
 
     const newFileIndex = new Map();

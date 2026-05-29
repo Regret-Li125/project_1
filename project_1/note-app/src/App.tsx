@@ -31,7 +31,11 @@ function App() {
   } = useNotes();
 
   const toast = useToast();
-  toastRef.current = toast;
+
+  // Sync toast ref for useNotes save error reporting
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast, toastRef]);
 
   const share = useShare(notes, folders, toast);
 
