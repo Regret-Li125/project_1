@@ -22,9 +22,13 @@ export function useNotes() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const { notes: loadedNotes, folders: loadedFolders } = await notesApi.loadNotes();
-        setNotes(loadedNotes);
-        setFolders(loadedFolders);
+        const result = await notesApi.loadNotes();
+        if (result.error) {
+          setStorageError(result.error);
+          return;
+        }
+        setNotes(result.notes);
+        setFolders(result.folders);
       } catch (error) {
         console.error('Failed to load data:', error);
         setStorageError('加载数据失败');
@@ -104,6 +108,16 @@ export function useNotes() {
       setSaveStatus('error');
       setStorageError('保存失败');
     }
+  }, []);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+    };
   }, []);
 
   // Flush on close

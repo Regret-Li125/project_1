@@ -1,7 +1,7 @@
 import type { Note, Folder } from '../types/note';
 
 type NotesDesktopApi = {
-  loadNotes: () => Promise<{ notes: Note[]; folders: Folder[] }>;
+  loadNotes: () => Promise<{ notes: Note[]; folders: Folder[]; error?: string }>;
   saveNotes: (notes: Note[], folders?: Folder[]) => Promise<{ success: boolean; error?: string }>;
   getStorageInfo: () => Promise<{ path: string }>;
 };
@@ -18,6 +18,7 @@ export const notesApi: NotesDesktopApi = {
       return window.notesApi.loadNotes();
     }
     // Fallback for development without Electron
+    console.warn('[notesApi] Running outside Electron — data stored in localStorage (not persisted to disk).');
     try {
       const data = localStorage.getItem('personal_knowledge_notes');
       if (!data) return { notes: [], folders: [] };
@@ -36,6 +37,7 @@ export const notesApi: NotesDesktopApi = {
       return window.notesApi.saveNotes(notes, folders);
     }
     // Fallback for development without Electron
+    console.warn('[notesApi] Running outside Electron — data stored in localStorage (not persisted to disk).');
     try {
       localStorage.setItem('personal_knowledge_notes', JSON.stringify({
         version: 1,

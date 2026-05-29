@@ -79,16 +79,20 @@ class ExportService {
   }
 
   markdownToHtml(content) {
+    // Use null-byte prefix to avoid collision with real user content
+    const CB = '\x00CB_';
+    const IC = '\x00IC_';
+
     const codeBlocks = [];
     let html = content.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
-      const placeholder = `__CODEBLOCK_${codeBlocks.length}__`;
+      const placeholder = `${CB}${codeBlocks.length}\x00`;
       codeBlocks.push(`<pre><code class="language-${lang}">${this.escapeHtml(code)}</code></pre>`);
       return placeholder;
     });
 
     const inlineCodes = [];
     html = html.replace(/`(.+?)`/g, (_, code) => {
-      const placeholder = `__INLINECODE_${inlineCodes.length}__`;
+      const placeholder = `${IC}${inlineCodes.length}\x00`;
       inlineCodes.push(`<code>${this.escapeHtml(code)}</code>`);
       return placeholder;
     });
@@ -178,12 +182,12 @@ class ExportService {
     html = html.replace(/<p>(<table>)/g, '$1');
     html = html.replace(/(<\/table>)<\/p>/g, '$1');
 
-    // Restore code blocks and inline code
-    for (let i = 0; i < codeBlocks.length; i++) {
-      html = html.replace(`__CODEBLOCK_${i}__`, codeBlocks[i]);
+    // Restore code blocks and inline code (reverse order)
+    for (let i = codeBlocks.length - 1; i >= 0; i--) {
+      html = html.replace(`${CB}${i}\x00`, codeBlocks[i]);
     }
-    for (let i = 0; i < inlineCodes.length; i++) {
-      html = html.replace(`__INLINECODE_${i}__`, inlineCodes[i]);
+    for (let i = inlineCodes.length - 1; i >= 0; i--) {
+      html = html.replace(`${IC}${i}\x00`, inlineCodes[i]);
     }
 
     return html;

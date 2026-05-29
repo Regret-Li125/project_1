@@ -1,5 +1,6 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const crypto = require('node:crypto');
 const { app } = require('electron');
 const yaml = require('js-yaml');
 
@@ -153,7 +154,13 @@ class VaultFileStore {
   async atomicWrite(absPath, content) {
     const tempPath = absPath + '.tmp';
     await fs.writeFile(tempPath, content, 'utf-8');
-    await fs.rename(tempPath, absPath);
+    try {
+      await fs.rename(tempPath, absPath);
+    } catch {
+      // Windows: rename fails if target exists; remove first then retry
+      await fs.rm(absPath, { force: true });
+      await fs.rename(tempPath, absPath);
+    }
   }
 
   // ── Folder metadata helpers ───────────────────────────────────────
