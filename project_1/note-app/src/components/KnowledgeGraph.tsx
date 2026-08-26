@@ -43,10 +43,13 @@ function forceLayout(nodes: { id: string }[], edges: { source: string; target: s
   nodes.forEach((n) => velocities.set(n.id, { x: 0, y: 0 }));
 
   const iterations = 120;
-  const repulsion = 2000;
-  const attraction = 0.01;
+  // 斥力按画布尺寸缩放，保证节点较少时也能铺开而不是挤成一团；
+  // 吸引力与中心引力相应调弱，使斥力/吸引力在期望边长处达到平衡。
+  const repulsion = Math.min(width, height) * 40;
+  const attraction = 0.006;
   const damping = 0.9;
-  const centerGravity = 0.005;
+  const centerGravity = 0.002;
+  const maxSpeed = 20;
 
   for (let iter = 0; iter < iterations; iter++) {
     const temp = 1 - iter / iterations;
@@ -100,11 +103,43 @@ function forceLayout(nodes: { id: string }[], edges: { source: string; target: s
       const vel = velocities.get(node.id)!;
       vel.x *= damping;
       vel.y *= damping;
+      // 限制单次迭代位移，防止密集小图在强斥力下节点飞出画布
+      const speed = Math.sqrt(vel.x * vel.x + vel.y * vel.y);
+      if (speed > maxSpeed) {
+        vel.x = (vel.x / speed) * maxSpeed;
+        vel.y = (vel.y / speed) * maxSpeed;
+      }
       pos.x += vel.x;
       pos.y += vel.y;
       // Keep within bounds
       pos.x = Math.max(40, Math.min(width - 40, pos.x));
       pos.y = Math.max(40, Math.min(height - 40, pos.y));
+    }
+  }
+
+  // 收敛后整体缩放平移（zoom-to-fit）：小图铺满画布不挤中心，大图收缩不出界
+  if (nodes.length >= 2) {
+    const xs: number[] = [];
+    const ys: number[] = [];
+    for (const pos of positions.values()) {
+      xs.push(pos.x);
+      ys.push(pos.y);
+    }
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    const pad = 70;
+    const availW = Math.max(width - pad * 2, 1);
+    const availH = Math.max(height - pad * 2, 1);
+    const spanX = Math.max(maxX - minX, 1);
+    const spanY = Math.max(maxY - minY, 1);
+    const scale = Math.min(availW / spanX, availH / spanY, 3);
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    for (const pos of positions.values()) {
+      pos.x = width / 2 + (pos.x - cx) * scale;
+      pos.y = height / 2 + (pos.y - cy) * scale;
     }
   }
 
@@ -385,8 +420,8 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
                     textAnchor="middle"
                     className="graph-node-label"
                   >
-                    {node.title.length > 10
-                      ? node.title.slice(0, 10) + '...'
+                    {node.title.length > 14
+                      ? node.title.slice(0, 14) + '...'
                       : node.title}
                   </text>
                 </g>
