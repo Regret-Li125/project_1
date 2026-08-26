@@ -70,7 +70,7 @@
 ## 🚀 快速开始
 
 ```bash
-cd project_1/note-app
+cd note-app
 npm install
 npm run electron:dev     # 同时启动 Vite 开发服务与 Electron 窗口
 ```
@@ -138,9 +138,9 @@ flowchart LR
 
 | 目录 | 说明 |
 | --- | --- |
-| [`project_1/note-app/`](project_1/note-app) | ⭐ **主项目**：个人知识库桌面应用（源码见 [`README`](project_1/note-app/README.md)） |
-| [`project_1/个人知识库-笔记助手/`](project_1/个人知识库-笔记助手) | 项目笔记与需求文档 |
-| `brain_computer/` · `nature-skills/` · `ui-ux-pro-max-skill/` | 其他个人资料与实验项目 |
+| [`note-app/`](note-app) | ⭐ **主项目**：个人知识库桌面应用（详见 [`note-app/README.md`](note-app/README.md)） |
+| [`个人知识库-笔记助手/`](个人知识库-笔记助手) | 项目笔记与需求文档 |
+| [`docs/`](docs) | README 截图素材 |
 
 ## 🗺️ 路线图
 
