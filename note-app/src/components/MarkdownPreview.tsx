@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import ReactMarkdown, { defaultUrlTransform } from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface MarkdownPreviewProps {
   content: string;
@@ -105,7 +106,7 @@ export const MarkdownPreview: React.FC<MarkdownPreviewProps> = React.memo(({ con
 
   return (
     <div className="markdown-preview">
-      <ReactMarkdown components={components} urlTransform={urlTransform}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components} urlTransform={urlTransform}>
         {markdownContent}
       </ReactMarkdown>
     </div>

@@ -455,6 +455,44 @@
   margin: 24px 0;
 }
 
+/* GFM 表格 */
+.markdown-preview table {
+  border-collapse: collapse;
+  margin-bottom: 12px;
+  width: 100%;
+  font-size: 14px;
+}
+
+.markdown-preview th,
+.markdown-preview td {
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.markdown-preview th {
+  background-color: var(--hover-bg);
+  font-weight: 600;
+}
+
+/* GFM 任务列表：去掉列表符号，复选框与文字对齐 */
+.markdown-preview li:has(> input[type='checkbox']) {
+  list-style: none;
+  margin-left: -20px;
+}
+
+.markdown-preview input[type='checkbox'] {
+  accent-color: var(--primary-color);
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+/* GFM 删除线 */
+.markdown-preview del {
+  color: var(--text-muted);
+}
+
 /* 内部链接样式 */
 .internal-link {
   color: var(--primary-color);

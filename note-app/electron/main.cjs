@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain, protocol, session } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, protocol, session, shell } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { vaultFileStore } = require('./storage/vaultFileStore.cjs');
@@ -117,6 +117,8 @@ function createWindow() {
     minWidth: 900,
     minHeight: 640,
     title: '个人知识库',
+    // 开发模式窗口图标；打包版由 electron-builder 写入 exe 资源，无需此路径
+    ...(app.isPackaged ? {} : { icon: path.join(__dirname, '../build/icon.png') }),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -252,6 +254,16 @@ ipcMain.handle('notes:save', async (_event, notes, folders = []) => {
 ipcMain.handle('notes:getStorageInfo', async () => ({
   path: vaultFileStore.getStoragePath(),
 }));
+
+// 在系统文件管理器中打开 vault 数据目录（含 .trash 回收站），便于手动恢复已删除笔记
+ipcMain.handle('notes:openStorageFolder', async () => {
+  const errorMessage = await shell.openPath(vaultFileStore.getStoragePath());
+  if (errorMessage) {
+    console.error('Failed to open storage folder:', errorMessage);
+    return { success: false, error: errorMessage };
+  }
+  return { success: true };
+});
 
 ipcMain.handle('export:selectDirectory', async () => {
   const selected = await exportService.selectExportDirectory();

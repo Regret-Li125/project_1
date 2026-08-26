@@ -36,6 +36,9 @@ class VaultFileStore {
     this.metaPath = path.join(this.vaultPath, '.vault-meta.json');
     this.notesDir = path.join(this.vaultPath, 'notes');
     this.foldersDir = path.join(this.vaultPath, 'folders');
+    // 回收站：删除的笔记移入此处而非直接抹除，用户可手工移回 notes/ 恢复。
+    // 加载扫描只覆盖 notes/ 与 folders/，.trash 不会被当作笔记读入。
+    this.trashDir = path.join(this.vaultPath, '.trash');
     this.legacyPath = path.join(baseDir, 'notes.json');
     this.legacyBackupPath = path.join(baseDir, 'notes.json.bak');
     this._initialized = true;
@@ -314,6 +317,34 @@ class VaultFileStore {
         console.warn('Atomic write fallback failed, temp file kept at:', tempPath, retryError);
         throw retryError;
       }
+    }
+  }
+
+  // 把待删除的笔记文件移入 vault 根下的 .trash/ 回收站。
+  // 文件名加时间戳前缀（ISO 时间中的冒号对 Windows 非法，替换为连字符），
+  // 同一笔记多次删除不会互相覆盖；总长受限以避免超出 MAX_PATH。
+  async moveNoteToTrash(absPath) {
+    await fs.mkdir(this.trashDir, { recursive: true });
+    const baseName = path.basename(absPath);
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const ext = path.extname(baseName);
+    let stem = `${stamp}_${path.basename(baseName, ext)}`;
+    if (stem.length > 140) {
+      stem = stem.slice(0, 140);
+    }
+    let trashPath = path.join(this.trashDir, `${stem}${ext}`);
+    let counter = 2;
+    while (await this.fileExists(trashPath)) {
+      trashPath = path.join(this.trashDir, `${stem}-${counter}${ext}`);
+      counter++;
+    }
+    try {
+      await fs.rename(absPath, trashPath);
+    } catch {
+      // rename 失败（如文件被占用）：先复制再删原文件；
+      // 复制也失败则抛错，由调用方保留原文件，绝不静默销毁数据。
+      await fs.copyFile(absPath, trashPath);
+      await fs.rm(absPath, { force: true });
     }
   }
 
@@ -610,7 +641,7 @@ class VaultFileStore {
       }
       const absPath = path.join(this.vaultPath, relPath);
       try {
-        await fs.rm(absPath, { force: true });
+        await this.moveNoteToTrash(absPath);
         // Clean up empty parent directory
         const parentDir = path.dirname(absPath);
         if (parentDir !== this.notesDir && parentDir !== this.foldersDir) {
@@ -619,8 +650,10 @@ class VaultFileStore {
             await fs.rmdir(parentDir).catch(() => {});
           }
         }
-      } catch {
-        // File may already be gone
+      } catch (e) {
+        // 移入回收站失败时保留原文件：笔记会在下次加载时"复活"，
+        // 这比静默丢失数据安全得多。
+        console.warn('Failed to move note to trash, keeping original file:', relPath, e.message);
       }
     }
 

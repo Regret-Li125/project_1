@@ -20,6 +20,7 @@ import { Toast } from './components/Toast';
 import { useToast } from './hooks/useToast';
 import { useNotes } from './hooks/useNotes';
 import { useShare } from './hooks/useShare';
+import { notesApi } from './api/notesApi';
 import './styles/app.css';
 
 function App() {
@@ -106,7 +107,7 @@ function App() {
     setSelectedNoteId(null);
     setViewMode('list');
     saveNotesImmediate(updatedNotes);
-    toast.success('笔记已删除');
+    toast.success('笔记已删除，可在数据文件夹的 .trash 中找回');
   }, [notes, selectedNoteId, setNotes, saveNotesImmediate, toast]);
 
   const handleBack = useCallback(() => {
@@ -271,6 +272,14 @@ function App() {
   const handleOpenAISettings = useCallback(() => setShowAISettings(true), []);
   const handleCloseAISettings = useCallback(() => setShowAISettings(false), []);
 
+  // 打开 vault 数据文件夹（含 .trash 回收站），便于手动找回已删除笔记
+  const handleOpenStorageFolder = useCallback(async () => {
+    const result = await notesApi.openStorageFolder();
+    if (!result.success) {
+      toast.error(result.error || '打开数据文件夹失败');
+    }
+  }, [toast]);
+
   // Commands
   const commands = useMemo(() => [
     { id: 'new-note', label: '新建笔记', shortcut: 'Ctrl+N', action: handleNewNote },
@@ -285,7 +294,8 @@ function App() {
     { id: 'export-vault', label: '导出整个知识库', action: handleExportVault },
     { id: 'local-share', label: '启动局域网分享', action: () => share.openLocalShare({ type: 'vault' }) },
     { id: 'ai-settings', label: 'AI 设置', action: handleOpenAISettings },
-  ], [handleNewNote, focusSearchInput, handleOpenTodayReview, handleRandomReview, handleExportCurrentNote, handleExportCurrentFolder, handleExportVault, handleOpenAISettings, share]);
+    { id: 'open-storage', label: '打开数据文件夹', action: handleOpenStorageFolder },
+  ], [handleNewNote, focusSearchInput, handleOpenTodayReview, handleRandomReview, handleExportCurrentNote, handleExportCurrentFolder, handleExportVault, handleOpenAISettings, handleOpenStorageFolder, share]);
 
   // Keyboard shortcuts
   useEffect(() => {

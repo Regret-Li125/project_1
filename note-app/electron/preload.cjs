@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('notesApi', {
   loadNotes: () => ipcRenderer.invoke('notes:load'),
   saveNotes: (notes, folders) => ipcRenderer.invoke('notes:save', notes, folders),
   getStorageInfo: () => ipcRenderer.invoke('notes:getStorageInfo'),
+  openStorageFolder: () => ipcRenderer.invoke('notes:openStorageFolder'),
 });
 
 contextBridge.exposeInMainWorld('exportApi', {

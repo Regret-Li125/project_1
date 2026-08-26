@@ -4,6 +4,7 @@ type NotesDesktopApi = {
   loadNotes: () => Promise<{ notes: Note[]; folders: Folder[]; error?: string }>;
   saveNotes: (notes: Note[], folders?: Folder[]) => Promise<{ success: boolean; error?: string }>;
   getStorageInfo: () => Promise<{ path: string }>;
+  openStorageFolder: () => Promise<{ success: boolean; error?: string }>;
 };
 
 declare global {
@@ -62,5 +63,13 @@ export const notesApi: NotesDesktopApi = {
       return window.notesApi.getStorageInfo();
     }
     return { path: 'localStorage (development mode)' };
+  },
+
+  openStorageFolder: async () => {
+    if (window.notesApi) {
+      return window.notesApi.openStorageFolder();
+    }
+    console.warn('[notesApi] Running outside Electron — cannot open storage folder.');
+    return { success: false, error: '仅桌面端支持打开数据文件夹' };
   },
 };
