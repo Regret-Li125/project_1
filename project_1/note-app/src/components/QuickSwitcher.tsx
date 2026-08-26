@@ -25,6 +25,12 @@ export const QuickSwitcher: React.FC<QuickSwitcherProps> = ({
     [notes, query]
   );
 
+  // 列表只渲染前 10 条，键盘导航上界与之保持一致
+  const maxIndex = Math.min(filteredNotes.length, 10) - 1;
+
+  // 过滤结果变少时对 selectedIndex 做读取时钳制，避免越界
+  const activeIndex = Math.max(0, Math.min(selectedIndex, maxIndex));
+
   useEffect(() => {
     if (isOpen) {
       const timer = setTimeout(() => inputRef.current?.focus(), 50);
@@ -43,13 +49,28 @@ export const QuickSwitcher: React.FC<QuickSwitcherProps> = ({
     onClose();
   }, [onClose]);
 
+  // overlay 层监听 Escape，焦点离开 input 也可关闭
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        handleClose();
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isOpen, handleClose]);
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      // IME 组合输入中不响应导航/确认键
+      if (e.nativeEvent.isComposing) return;
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
           setSelectedIndex((prev) =>
-            prev < filteredNotes.length - 1 ? prev + 1 : prev
+            prev < maxIndex ? prev + 1 : prev
           );
           break;
         case 'ArrowUp':
@@ -58,8 +79,8 @@ export const QuickSwitcher: React.FC<QuickSwitcherProps> = ({
           break;
         case 'Enter':
           e.preventDefault();
-          if (filteredNotes[selectedIndex]) {
-            onNoteSelect(filteredNotes[selectedIndex].id);
+          if (filteredNotes[activeIndex]) {
+            onNoteSelect(filteredNotes[activeIndex].id);
             handleClose();
           }
           break;
@@ -69,7 +90,7 @@ export const QuickSwitcher: React.FC<QuickSwitcherProps> = ({
           break;
       }
     },
-    [filteredNotes, selectedIndex, onNoteSelect, handleClose]
+    [filteredNotes, activeIndex, maxIndex, onNoteSelect, handleClose]
   );
 
   if (!isOpen) return null;
@@ -90,7 +111,7 @@ export const QuickSwitcher: React.FC<QuickSwitcherProps> = ({
           {filteredNotes.slice(0, 10).map((note, index) => (
             <li
               key={note.id}
-              className={`quick-switcher-item ${index === selectedIndex ? 'selected' : ''}`}
+              className={`quick-switcher-item ${index === activeIndex ? 'selected' : ''}`}
               onClick={() => {
                 onNoteSelect(note.id);
                 handleClose();

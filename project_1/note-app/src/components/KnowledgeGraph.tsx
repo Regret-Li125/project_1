@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback, useRef } from 'react';
 import type { Note, LinkGraph } from '../types/note';
-import { parseLinks } from '../utils/linkParser';
+import { parseLinks, extractLinksFromNote, resolveNoteByTitle } from '../utils/linkParser';
 
 interface KnowledgeGraphProps {
   notes: Note[];
@@ -10,6 +10,9 @@ interface KnowledgeGraphProps {
 }
 
 type Vec2 = { x: number; y: number };
+
+// 参与力导向布局的节点上限，超出时截断并在 UI 提示
+const MAX_LAYOUT_NODES = 300;
 
 function forceLayout(nodes: { id: string }[], edges: { source: string; target: string }[], width: number, height: number): Map<string, Vec2> {
   const positions = new Map<string, Vec2>();
@@ -73,7 +76,8 @@ function forceLayout(nodes: { id: string }[], edges: { source: string; target: s
       if (!a || !b) continue;
       const dx = b.x - a.x;
       const dy = b.y - a.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
+      // 除零保护：两点重合时 dist 为 0
+      const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
       const force = dist * attraction * temp;
       const fx = (dx / dist) * force;
       const fy = (dy / dist) * force;
@@ -117,6 +121,11 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
   const svgRef = useRef<SVGSVGElement>(null);
   const [viewBox] = useState({ width: 800, height: 600 });
 
+  // 布局与构图只依赖内容摘要（id+标题+链接），避免 notes 引用变化导致的全量重算
+  const notesDigest = notes
+    .map((n) => `${n.id}:${n.title}:${n.updatedAt}:${extractLinksFromNote(n.content).join(',')}`)
+    .join('|');
+
   const graph = useMemo<LinkGraph>(() => {
     const nodes = notes.map((note) => ({
       id: note.id,
@@ -126,16 +135,16 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
 
     const edges: LinkGraph['edges'] = [];
     const unresolvedLinks: LinkGraph['unresolvedLinks'] = [];
-    const titles = new Map(notes.map((n) => [n.title.toLowerCase(), n.id]));
 
     for (const note of notes) {
       const links = parseLinks(note.content);
       for (const link of links) {
-        const targetId = titles.get(link.targetTitle.toLowerCase());
-        if (targetId) {
+        // 与反链面板共用同一解析逻辑：忽略大小写/首尾空格，重名取 updatedAt 最新者
+        const target = resolveNoteByTitle(notes, link.targetTitle);
+        if (target) {
           edges.push({
             source: note.id,
-            target: targetId,
+            target: target.id,
             label: link.displayText,
           });
         } else {
@@ -148,7 +157,9 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
     }
 
     return { nodes, edges, unresolvedLinks };
-  }, [notes]);
+    // 依赖内容摘要而非 notes 引用，摘要覆盖 id/title/链接/updatedAt 的实际变化
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notesDigest]);
 
   const filteredGraph = useMemo(() => {
     if (showIsolated) return graph;
@@ -165,13 +176,39 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
     };
   }, [graph, showIsolated]);
 
+  // 节点数量超过上限时截断参与布局的集合，避免布局计算与渲染卡顿
+  const layoutGraph = useMemo(() => {
+    if (filteredGraph.nodes.length <= MAX_LAYOUT_NODES) {
+      return { graph: filteredGraph, truncated: false };
+    }
+    const keptNodes = filteredGraph.nodes.slice(0, MAX_LAYOUT_NODES);
+    const keptIds = new Set(keptNodes.map((n) => n.id));
+    return {
+      graph: {
+        ...filteredGraph,
+        nodes: keptNodes,
+        edges: filteredGraph.edges.filter((e) => keptIds.has(e.source) && keptIds.has(e.target)),
+      },
+      truncated: true,
+    };
+  }, [filteredGraph]);
+
   const computedPositions = useMemo(
-    () => forceLayout(filteredGraph.nodes, filteredGraph.edges, viewBox.width, viewBox.height),
-    [filteredGraph, viewBox]
+    () => forceLayout(layoutGraph.graph.nodes, layoutGraph.graph.edges, viewBox.width, viewBox.height),
+    [layoutGraph, viewBox]
   );
 
   // Drag overrides: positions manually moved by user, layered on top of computed layout
   const [dragOverrides, setDragOverrides] = useState<Map<string, Vec2>>(() => new Map());
+
+  // 节点集合变化时清空拖拽覆盖，避免已消失节点的残留坐标
+  // （渲染期间对比 key 并调整 state，React 会在提交前立即重渲染一次）
+  const layoutNodeIdsKey = layoutGraph.graph.nodes.map((n) => n.id).join('|');
+  const [prevNodeIdsKey, setPrevNodeIdsKey] = useState(layoutNodeIdsKey);
+  if (prevNodeIdsKey !== layoutNodeIdsKey) {
+    setPrevNodeIdsKey(layoutNodeIdsKey);
+    setDragOverrides(new Map());
+  }
 
   // Derive display positions: computed base + drag overrides
   const positions = useMemo(() => {
@@ -182,46 +219,89 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
     return merged;
   }, [computedPositions, dragOverrides]);
 
+  // 预计算有连接的节点集合，避免渲染时逐节点扫描 edges
+  const connectedIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of graph.edges) {
+      set.add(e.source);
+      set.add(e.target);
+    }
+    return set;
+  }, [graph.edges]);
+
   // Drag state
   const [dragging, setDragging] = useState<string | null>(null);
   const dragOffset = useRef<Vec2>({ x: 0, y: 0 });
+  const dragStart = useRef<Vec2>({ x: 0, y: 0 });
+  const dragMoved = useRef(false);
+  const moveRaf = useRef<number | null>(null);
+  const pendingPointer = useRef<{ clientX: number; clientY: number } | null>(null);
+
+  // 用 SVG 自身 CTM 逆矩阵做屏幕坐标 → viewBox 坐标的精确换算，
+  // 兼容 preserveAspectRatio 带来的非均匀缩放/留白
+  const toSvgPoint = useCallback((clientX: number, clientY: number): Vec2 | null => {
+    const svg = svgRef.current;
+    if (!svg) return null;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return null;
+    const point = new DOMPoint(clientX, clientY).matrixTransform(ctm.inverse());
+    return { x: point.x, y: point.y };
+  }, []);
 
   const handleMouseDown = useCallback((nodeId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const pos = positions.get(nodeId);
     if (!pos) return;
-    const svg = svgRef.current;
-    if (!svg) return;
-    const rect = svg.getBoundingClientRect();
-    const scaleX = viewBox.width / rect.width;
-    const scaleY = viewBox.height / rect.height;
-    dragOffset.current = {
-      x: (e.clientX - rect.left) * scaleX - pos.x,
-      y: (e.clientY - rect.top) * scaleY - pos.y,
-    };
+    const svgPoint = toSvgPoint(e.clientX, e.clientY);
+    if (!svgPoint) return;
+    dragOffset.current = { x: svgPoint.x - pos.x, y: svgPoint.y - pos.y };
+    dragStart.current = pos;
+    dragMoved.current = false;
     setDragging(nodeId);
-  }, [viewBox, positions]);
+  }, [positions, toSvgPoint]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!dragging) return;
-    const svg = svgRef.current;
-    if (!svg) return;
-    const rect = svg.getBoundingClientRect();
-    const scaleX = viewBox.width / rect.width;
-    const scaleY = viewBox.height / rect.height;
-    const x = (e.clientX - rect.left) * scaleX - dragOffset.current.x;
-    const y = (e.clientY - rect.top) * scaleY - dragOffset.current.y;
-    const newOverrides = new Map(dragOverrides);
-    newOverrides.set(dragging, {
-      x: Math.max(20, Math.min(viewBox.width - 20, x)),
-      y: Math.max(20, Math.min(viewBox.height - 20, y)),
+    pendingPointer.current = { clientX: e.clientX, clientY: e.clientY };
+    // requestAnimationFrame 节流：每帧最多更新一次拖拽位置
+    if (moveRaf.current !== null) return;
+    moveRaf.current = requestAnimationFrame(() => {
+      moveRaf.current = null;
+      const pointer = pendingPointer.current;
+      if (!pointer) return;
+      const svgPoint = toSvgPoint(pointer.clientX, pointer.clientY);
+      if (!svgPoint) return;
+      const x = svgPoint.x - dragOffset.current.x;
+      const y = svgPoint.y - dragOffset.current.y;
+      // 位移超过阈值视为真实拖拽，随后拦截 click，避免拖完误切选中笔记
+      const dx = x - dragStart.current.x;
+      const dy = y - dragStart.current.y;
+      if (Math.sqrt(dx * dx + dy * dy) > 3) {
+        dragMoved.current = true;
+      }
+      setDragOverrides((prev) => {
+        const next = new Map(prev);
+        next.set(dragging, {
+          x: Math.max(20, Math.min(viewBox.width - 20, x)),
+          y: Math.max(20, Math.min(viewBox.height - 20, y)),
+        });
+        return next;
+      });
     });
-    setDragOverrides(newOverrides);
-  }, [dragging, viewBox, dragOverrides]);
+  }, [dragging, viewBox, toSvgPoint]);
 
   const handleMouseUp = useCallback(() => {
     setDragging(null);
   }, []);
+
+  const handleNodeClick = useCallback((nodeId: string) => {
+    // 拖拽位移超阈值后拦截紧随的 click
+    if (dragMoved.current) {
+      dragMoved.current = false;
+      return;
+    }
+    onNoteSelect(nodeId);
+  }, [onNoteSelect]);
 
   return (
     <div className="knowledge-graph-overlay">
@@ -242,6 +322,11 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
             </button>
           </div>
         </div>
+        {layoutGraph.truncated && (
+          <p className="graph-truncated-hint">
+            笔记数量较多，仅前 {MAX_LAYOUT_NODES} 个节点参与布局显示。
+          </p>
+        )}
         {filteredGraph.nodes.length === 0 ? (
           <div className="graph-empty">
             <p className="empty-title">
@@ -262,7 +347,7 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
           >
-            {filteredGraph.edges.map((edge, i) => {
+            {layoutGraph.graph.edges.map((edge, i) => {
               const source = positions.get(edge.source);
               const target = positions.get(edge.target);
               if (!source || !target) return null;
@@ -279,20 +364,18 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
               );
             })}
 
-            {filteredGraph.nodes.map((node) => {
+            {layoutGraph.graph.nodes.map((node) => {
               const pos = positions.get(node.id);
               if (!pos) return null;
               const isSelected = node.id === selectedNoteId;
-              const hasLinks = graph.edges.some(
-                (e) => e.source === node.id || e.target === node.id
-              );
+              const hasLinks = connectedIds.has(node.id);
 
               return (
                 <g
                   key={node.id}
                   className={`graph-node ${isSelected ? 'selected' : ''} ${hasLinks ? 'connected' : 'isolated'}`}
                   transform={`translate(${pos.x}, ${pos.y})`}
-                  onClick={() => onNoteSelect(node.id)}
+                  onClick={() => handleNodeClick(node.id)}
                   onMouseDown={(e) => handleMouseDown(node.id, e)}
                   style={{ cursor: dragging === node.id ? 'grabbing' : 'grab' }}
                 >

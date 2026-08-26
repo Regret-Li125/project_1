@@ -25,6 +25,20 @@ contextBridge.exposeInMainWorld('shareApi', {
   getStatus: () => ipcRenderer.invoke('share:getStatus'),
 });
 
+contextBridge.exposeInMainWorld('aiApi', {
+  getConfig: () => ipcRenderer.invoke('ai:getConfig'),
+  saveConfig: (cfg) => ipcRenderer.invoke('ai:saveConfig', cfg),
+  clearApiKey: () => ipcRenderer.invoke('ai:clearApiKey'),
+  testConnection: () => ipcRenderer.invoke('ai:testConnection'),
+  listModels: () => ipcRenderer.invoke('ai:listModels'),
+  organizeText: (input) => ipcRenderer.invoke('ai:organizeText', input),
+  summarize: (input) => ipcRenderer.invoke('ai:summarize', input),
+  suggestTags: (input) => ipcRenderer.invoke('ai:suggestTags', input),
+  selectImageToVault: () => ipcRenderer.invoke('ai:selectImageToVault'),
+  ocrImage: (input) => ipcRenderer.invoke('ai:ocrImage', input),
+  transcribeAudio: (input) => ipcRenderer.invoke('ai:transcribeAudio', input),
+});
+
 contextBridge.exposeInMainWorld('lifecycleApi', {
   onRequestClose: (callback) => {
     const handler = () => callback();

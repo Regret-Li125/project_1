@@ -1,6 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { Note } from '../types/note';
-import { findBacklinks, extractLinksFromNote } from '../utils/linkParser';
+import {
+  findBacklinks,
+  extractLinksFromNote,
+  resolveNoteByTitle,
+} from '../utils/linkParser';
 
 interface BacklinkPanelProps {
   currentNote: Note;
@@ -15,9 +19,16 @@ export const BacklinkPanel: React.FC<BacklinkPanelProps> = React.memo(({
   onNoteSelect,
   onCreateNote,
 }) => {
+  // 对 notes 做 300ms 防抖，避免编辑时每一次击键都触发全语料反链重解析
+  const [debouncedNotes, setDebouncedNotes] = useState(notes);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedNotes(notes), 300);
+    return () => clearTimeout(timer);
+  }, [notes]);
+
   const backlinks = useMemo(
-    () => findBacklinks(notes, currentNote.title),
-    [notes, currentNote.title]
+    () => findBacklinks(debouncedNotes, currentNote.title),
+    [debouncedNotes, currentNote.title]
   );
   const outgoingLinks = useMemo(
     () => extractLinksFromNote(currentNote.content),
@@ -25,12 +36,16 @@ export const BacklinkPanel: React.FC<BacklinkPanelProps> = React.memo(({
   );
 
   const { resolvedLinks, unresolvedLinks } = useMemo(() => {
-    const resolved = outgoingLinks.filter((title) =>
-      notes.some((n) => n.title.toLowerCase() === title.toLowerCase())
-    );
-    const unresolved = outgoingLinks.filter(
-      (title) => !notes.some((n) => n.title.toLowerCase() === title.toLowerCase())
-    );
+    const resolved: string[] = [];
+    const unresolved: string[] = [];
+    for (const title of outgoingLinks) {
+      // 与图谱共用同一解析逻辑（忽略大小写/首尾空格，重名取最新）
+      if (resolveNoteByTitle(notes, title)) {
+        resolved.push(title);
+      } else {
+        unresolved.push(title);
+      }
+    }
     return { resolvedLinks: resolved, unresolvedLinks: unresolved };
   }, [outgoingLinks, notes]);
 
@@ -43,17 +58,23 @@ export const BacklinkPanel: React.FC<BacklinkPanelProps> = React.memo(({
         </h3>
         {backlinks.length > 0 ? (
           <ul className="backlink-list">
-            {backlinks.map((backlink) => (
-              <li key={backlink.noteId} className="backlink-item">
-                <button
-                  className="backlink-link"
-                  onClick={() => onNoteSelect(backlink.noteId)}
-                >
-                  <span className="backlink-note-title">{backlink.noteTitle}</span>
-                  <span className="backlink-context">{backlink.context}</span>
-                </button>
-              </li>
-            ))}
+            {backlinks.map((backlink) => {
+              const isSelf = backlink.noteId === currentNote.id;
+              return (
+                <li key={backlink.noteId} className="backlink-item">
+                  <button
+                    className="backlink-link"
+                    onClick={() => onNoteSelect(backlink.noteId)}
+                  >
+                    <span className="backlink-note-title">
+                      {backlink.noteTitle}
+                      {isSelf && '（自引用）'}
+                    </span>
+                    <span className="backlink-context">{backlink.context}</span>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <div className="backlink-empty">
@@ -73,9 +94,7 @@ export const BacklinkPanel: React.FC<BacklinkPanelProps> = React.memo(({
         {outgoingLinks.length > 0 ? (
           <ul className="backlink-list">
             {resolvedLinks.map((title) => {
-              const note = notes.find(
-                (n) => n.title.toLowerCase() === title.toLowerCase()
-              );
+              const note = resolveNoteByTitle(notes, title);
               return note ? (
                 <li key={note.id} className="backlink-item resolved">
                   <button

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useDeferredValue } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, useDeferredValue } from 'react';
 import type { Note, Folder } from './types/note';
 import { filterNotes, getTagStats, getRecentNotes } from './utils/noteSearch';
 import { pickReviewNotes, pickRandomNote } from './utils/reviewPicker';
@@ -15,6 +15,7 @@ import { KnowledgeGraph } from './components/KnowledgeGraph';
 import { QuickCapture } from './components/QuickCapture';
 import { ShareConfirmDialog } from './components/ShareConfirmDialog';
 import { LocalShareDialog } from './components/LocalShareDialog';
+import { AISettingsDialog } from './components/AISettingsDialog';
 import { Toast } from './components/Toast';
 import { useToast } from './hooks/useToast';
 import { useNotes } from './hooks/useNotes';
@@ -47,12 +48,21 @@ function App() {
   const [showQuickSwitcher, setShowQuickSwitcher] = useState(false);
   const [showGraphView, setShowGraphView] = useState(false);
   const [showQuickCapture, setShowQuickCapture] = useState(false);
+  const [showAISettings, setShowAISettings] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'editor'>('list');
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
 
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const deferredSelectedTag = useDeferredValue(selectedTag);
   const deferredNotes = useDeferredValue(notes);
+
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const focusSearchInput = useCallback(() => {
+    searchInputRef.current?.focus();
+  }, []);
+
+  // lastOpenedAt 保存节流：30s 内最多触发一次全库保存
+  const lastOpenedSaveRef = useRef(0);
 
   // Note operations
   const handleNewNote = useCallback(() => {
@@ -72,7 +82,12 @@ function App() {
       note.id === noteId ? { ...note, lastOpenedAt: new Date().toISOString() } : note
     );
     setNotes(updatedNotes);
-    saveNotes(updatedNotes);
+    // 仅更新内存状态；距上次保存不足 30s 时跳过落盘，避免每次点击都全库保存
+    const now = Date.now();
+    if (now - lastOpenedSaveRef.current >= 30_000) {
+      lastOpenedSaveRef.current = now;
+      saveNotes(updatedNotes);
+    }
   }, [notes, setNotes, saveNotes]);
 
   const handleNoteUpdate = useCallback((patch: Partial<Pick<Note, 'title' | 'content' | 'tags'>>) => {
@@ -101,9 +116,7 @@ function App() {
 
   // Search & filter
   const handleSearchChange = useCallback((query: string) => setSearchQuery(query), []);
-  const handleClearSearch = useCallback(() => setSearchQuery(''), []);
   const handleTagSelect = useCallback((tag: string | null) => setSelectedTag(tag), []);
-  const handleClearTag = useCallback(() => setSelectedTag(null), []);
   const handleClearFilter = useCallback(() => { setSelectedTag(null); setSearchQuery(''); }, []);
 
   // Review
@@ -156,7 +169,7 @@ function App() {
   // Folders
   const handleNewFolder = useCallback((parentId?: string) => {
     const newFolder: Folder = {
-      id: crypto.randomUUID ? crypto.randomUUID() : `folder_${Date.now()}`,
+      id: crypto.randomUUID ? crypto.randomUUID() : `folder_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       name: '新建文件夹',
       parentId: parentId || null,
       createdAt: new Date().toISOString(),
@@ -176,14 +189,34 @@ function App() {
   }, [folders, notes, setFolders, saveNotes]);
 
   const handleDeleteFolder = useCallback((folderId: string) => {
-    const updatedFolders = folders.filter((f) => f.id !== folderId);
+    const target = folders.find((f) => f.id === folderId);
+    if (!target) return;
+    // 收集被删文件夹及其全部后代 id
+    const removedIds = new Set<string>([folderId]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const f of folders) {
+        if (!removedIds.has(f.id) && f.parentId && removedIds.has(f.parentId)) {
+          removedIds.add(f.id);
+          changed = true;
+        }
+      }
+    }
+    // 级联：子文件夹重挂到被删文件夹的父级，避免层级丢失
+    const updatedFolders = folders
+      .filter((f) => f.id !== folderId)
+      .map((f) => (f.parentId === folderId ? { ...f, parentId: target.parentId } : f));
     const updatedNotes = notes.map((n) =>
       n.folderId === folderId ? { ...n, folderId: null } : n
     );
     setFolders(updatedFolders);
     setNotes(updatedNotes);
+    if (selectedFolderId && removedIds.has(selectedFolderId)) {
+      setSelectedFolderId(null);
+    }
     saveNotes(updatedNotes, updatedFolders);
-  }, [folders, notes, setFolders, setNotes, saveNotes]);
+  }, [folders, notes, selectedFolderId, setFolders, setNotes, saveNotes]);
 
   const handleMoveNote = useCallback((noteId: string, folderId: string | null) => {
     const updatedNotes = notes.map((n) =>
@@ -200,6 +233,8 @@ function App() {
     tags: string[];
     sourceType?: Note['sourceType'];
     sourceUrl?: string;
+    /** AI 整理失败回退本地模板时为 true */
+    usedFallback?: boolean;
   }) => {
     const newNote = createBlankNote({
       title: noteData.title,
@@ -214,7 +249,11 @@ function App() {
     setSelectedNoteId(newNote.id);
     setViewMode('editor');
     saveNotes(updatedNotes);
-    toast.success('速记已保存为笔记');
+    if (noteData.usedFallback) {
+      toast.info('AI 整理失败，已使用本地模板保存');
+    } else {
+      toast.success('速记已保存为笔记');
+    }
   }, [createBlankNote, notes, setNotes, saveNotes, toast]);
 
   // Share shortcuts
@@ -228,11 +267,15 @@ function App() {
 
   const handleExportVault = useCallback(() => share.openShare({ type: 'vault' }), [share]);
 
+  // AI 设置
+  const handleOpenAISettings = useCallback(() => setShowAISettings(true), []);
+  const handleCloseAISettings = useCallback(() => setShowAISettings(false), []);
+
   // Commands
   const commands = useMemo(() => [
     { id: 'new-note', label: '新建笔记', shortcut: 'Ctrl+N', action: handleNewNote },
     { id: 'quick-switch', label: '快速打开笔记', shortcut: 'Ctrl+P', action: () => setShowQuickSwitcher(true) },
-    { id: 'search', label: '搜索全部笔记', shortcut: 'Ctrl+F', action: () => document.querySelector<HTMLInputElement>('.search-input')?.focus() },
+    { id: 'search', label: '搜索全部笔记', shortcut: 'Ctrl+F', action: focusSearchInput },
     { id: 'graph', label: '打开知识图谱', shortcut: 'Ctrl+G', action: () => setShowGraphView(true) },
     { id: 'review', label: '打开今日回顾', action: handleOpenTodayReview },
     { id: 'random', label: '随机复习', action: handleRandomReview },
@@ -241,40 +284,62 @@ function App() {
     { id: 'export-folder', label: '导出当前文件夹', action: handleExportCurrentFolder },
     { id: 'export-vault', label: '导出整个知识库', action: handleExportVault },
     { id: 'local-share', label: '启动局域网分享', action: () => share.openLocalShare({ type: 'vault' }) },
-  ], [handleNewNote, handleOpenTodayReview, handleRandomReview, handleExportCurrentNote, handleExportCurrentFolder, handleExportVault, share]);
+    { id: 'ai-settings', label: 'AI 设置', action: handleOpenAISettings },
+  ], [handleNewNote, focusSearchInput, handleOpenTodayReview, handleRandomReview, handleExportCurrentNote, handleExportCurrentFolder, handleExportVault, handleOpenAISettings, share]);
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      // 弹窗打开时，全局快捷键一律放行给弹窗自身处理（如 Esc 关闭）
+      const anyDialogOpen =
+        showCommandPalette ||
+        showQuickSwitcher ||
+        showQuickCapture ||
+        showAISettings ||
+        showGraphView ||
+        share.showShareDialog ||
+        share.showLocalShareDialog;
+      if (anyDialogOpen) return;
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const key = e.key.toLowerCase();
+      if (key === 'k') {
         e.preventDefault();
         setShowCommandPalette((prev) => !prev);
       }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+      if (key === 'f') {
         e.preventDefault();
-        document.querySelector<HTMLInputElement>('.search-input')?.focus();
+        focusSearchInput();
       }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+      if (key === 'p') {
         e.preventDefault();
         setShowQuickSwitcher((prev) => !prev);
       }
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'n') {
+      if (e.shiftKey && key === 'n') {
         e.preventDefault();
         setShowQuickCapture(true);
         return;
       }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+      if (key === 'n') {
         e.preventDefault();
         handleNewNote();
       }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'g') {
+      if (key === 'g') {
         e.preventDefault();
         setShowGraphView((prev) => !prev);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleNewNote]);
+  }, [
+    handleNewNote,
+    focusSearchInput,
+    showCommandPalette,
+    showQuickSwitcher,
+    showQuickCapture,
+    showAISettings,
+    showGraphView,
+    share,
+  ]);
 
   // Derived state
   const selectedNote = useMemo(
@@ -303,6 +368,8 @@ function App() {
         onLocalShare={share.openLocalShare}
         selectedNoteId={selectedNoteId}
         selectedFolderId={selectedFolderId}
+        searchInputRef={searchInputRef}
+        onOpenSettings={handleOpenAISettings}
       />
       <div className="app-content">
         <div className="left-sidebar">
@@ -346,12 +413,11 @@ function App() {
             <NoteList
               notes={filteredNotes}
               selectedNoteId={selectedNoteId}
-              searchQuery={searchQuery}
+              searchQuery={deferredSearchQuery}
               selectedTag={selectedTag}
               onNoteSelect={handleNoteSelect}
               onNewNote={handleNewNote}
-              onClearSearch={handleClearSearch}
-              onClearTag={handleClearTag}
+              onClearFilter={handleClearFilter}
             />
           )}
         </main>
@@ -420,6 +486,11 @@ function App() {
           onClose={share.closeLocalShare}
         />
       )}
+
+      <AISettingsDialog
+        isOpen={showAISettings}
+        onClose={handleCloseAISettings}
+      />
 
       <Toast messages={toast.messages} onDismiss={toast.dismissToast} />
     </div>

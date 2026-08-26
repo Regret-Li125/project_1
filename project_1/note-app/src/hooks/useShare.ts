@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { Note, Folder, ShareScope, ShareResult } from '../types/note';
 import { exportApi } from '../api/exportApi';
 import { collectShareScope } from '../utils/shareUtils';
@@ -32,46 +32,55 @@ export function useShare(
   const confirmShare = useCallback(async (format: ExportFormat) => {
     if (!shareResult || !shareScope) return;
 
-    let result;
+    try {
+      let result;
 
-    switch (format) {
-      case 'markdown-zip': {
-        const savePath = await exportApi.selectSaveFile('知识库导出.zip');
-        if (!savePath) return;
-        result = await exportApi.exportMarkdownZip(shareResult.notes, shareResult.folders, savePath);
-        break;
+      switch (format) {
+        case 'markdown-zip': {
+          const savePath = await exportApi.selectSaveFile('知识库导出.zip');
+          if (!savePath) return;
+          result = await exportApi.exportMarkdownZip(shareResult.notes, shareResult.folders, savePath);
+          break;
+        }
+        case 'html-zip': {
+          const savePath = await exportApi.selectSaveFile('知识库导出.zip');
+          if (!savePath) return;
+          result = await exportApi.exportHtmlZip(shareResult.notes, shareResult.folders, savePath);
+          break;
+        }
+        case 'markdown-dir': {
+          const exportPath = await exportApi.selectDirectory();
+          if (!exportPath) return;
+          result = await exportApi.exportMarkdownDirectory(shareResult.notes, shareResult.folders, exportPath);
+          break;
+        }
+        case 'html-dir': {
+          const exportPath = await exportApi.selectDirectory();
+          if (!exportPath) return;
+          result = await exportApi.exportHtmlDirectory(shareResult.notes, shareResult.folders, exportPath);
+          break;
+        }
       }
-      case 'html-zip': {
-        const savePath = await exportApi.selectSaveFile('知识库导出.zip');
-        if (!savePath) return;
-        result = await exportApi.exportHtmlZip(shareResult.notes, shareResult.folders, savePath);
-        break;
+
+      if (result) {
+        if (result.success) {
+          onToast.success('导出成功！');
+        } else {
+          onToast.error(`导出失败: ${result.error || '未知错误'}`);
+        }
       }
-      case 'markdown-dir': {
-        const exportPath = await exportApi.selectDirectory();
-        if (!exportPath) return;
-        result = await exportApi.exportMarkdownDirectory(shareResult.notes, shareResult.folders, exportPath);
-        break;
-      }
-      case 'html-dir': {
-        const exportPath = await exportApi.selectDirectory();
-        if (!exportPath) return;
-        result = await exportApi.exportHtmlDirectory(shareResult.notes, shareResult.folders, exportPath);
-        break;
-      }
+
+      setShowShareDialog(false);
+      setShareScope(null);
+      setShareResult(null);
+    } catch (error) {
+      // 导出过程抛异常：提示用户并复位对话框状态，避免对话框卡死在打开状态
+      console.error('Failed to export:', error);
+      onToast.error(`导出失败: ${error instanceof Error ? error.message : String(error)}`);
+      setShowShareDialog(false);
+      setShareScope(null);
+      setShareResult(null);
     }
-
-    if (result) {
-      if (result.success) {
-        onToast.success('导出成功！');
-      } else {
-        onToast.error(`导出失败: ${result.error}`);
-      }
-    }
-
-    setShowShareDialog(false);
-    setShareScope(null);
-    setShareResult(null);
   }, [shareResult, shareScope, onToast]);
 
   const cancelShare = useCallback(() => {
@@ -86,7 +95,7 @@ export function useShare(
     setShareResult(null);
   }, []);
 
-  return {
+  return useMemo(() => ({
     showShareDialog,
     showLocalShareDialog,
     shareResult,
@@ -95,5 +104,14 @@ export function useShare(
     confirmShare,
     cancelShare,
     closeLocalShare,
-  };
+  }), [
+    showShareDialog,
+    showLocalShareDialog,
+    shareResult,
+    openShare,
+    openLocalShare,
+    confirmShare,
+    cancelShare,
+    closeLocalShare,
+  ]);
 }

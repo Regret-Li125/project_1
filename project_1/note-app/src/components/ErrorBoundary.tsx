@@ -7,24 +7,31 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  failCount: number;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, failCount: 0 };
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('[ErrorBoundary] Caught error:', error, errorInfo);
+    this.setState((prev) => ({ failCount: prev.failCount + 1 }));
   }
 
   handleReset = () => {
+    // 保留 failCount：若重试后再次崩溃，componentDidCatch 会累计，用于提示重新加载
     this.setState({ hasError: false, error: null });
+  };
+
+  handleReload = () => {
+    window.location.reload();
   };
 
   render() {
@@ -60,20 +67,38 @@ export class ErrorBoundary extends Component<Props, State> {
               {this.state.error.message}
             </pre>
           )}
-          <button
-            onClick={this.handleReset}
-            style={{
-              padding: '10px 24px',
-              fontSize: '1em',
-              borderRadius: '6px',
-              border: 'none',
-              background: '#7c3aed',
-              color: '#fff',
-              cursor: 'pointer',
-            }}
-          >
-            重试
-          </button>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button
+              onClick={this.handleReset}
+              style={{
+                padding: '10px 24px',
+                fontSize: '1em',
+                borderRadius: '6px',
+                border: 'none',
+                background: '#7c3aed',
+                color: '#fff',
+                cursor: 'pointer',
+              }}
+            >
+              重试
+            </button>
+            {this.state.failCount >= 2 && (
+              <button
+                onClick={this.handleReload}
+                style={{
+                  padding: '10px 24px',
+                  fontSize: '1em',
+                  borderRadius: '6px',
+                  border: '1px solid #7c3aed',
+                  background: '#fff',
+                  color: '#7c3aed',
+                  cursor: 'pointer',
+                }}
+              >
+                重新加载应用
+              </button>
+            )}
+          </div>
         </div>
       );
     }

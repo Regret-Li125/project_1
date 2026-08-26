@@ -63,10 +63,15 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           setSelectedIndex((prev) => (prev > 0 ? prev - 1 : prev));
           break;
         case 'Enter':
+          // IME 组合输入中不响应确认键
+          if (e.nativeEvent.isComposing) return;
           e.preventDefault();
           if (filteredCommands[selectedIndex]) {
-            filteredCommands[selectedIndex].action();
-            handleClose();
+            try {
+              filteredCommands[selectedIndex].action();
+            } finally {
+              handleClose();
+            }
           }
           break;
         case 'Escape':
@@ -98,8 +103,11 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               key={cmd.id}
               className={`command-palette-item ${index === selectedIndex ? 'selected' : ''}`}
               onClick={() => {
-                cmd.action();
-                handleClose();
+                try {
+                  cmd.action();
+                } finally {
+                  handleClose();
+                }
               }}
               onMouseEnter={() => setSelectedIndex(index)}
             >

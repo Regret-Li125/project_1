@@ -5,6 +5,7 @@ import {
   extractLinksFromNote,
   findBacklinks,
   findUnresolvedLinks,
+  resolveNoteByTitle,
 } from '../linkParser';
 
 describe('parseLinks', () => {
@@ -42,6 +43,48 @@ describe('parseLinks', () => {
     expect(links[0].startIndex).toBe(2);
     expect(links[0].endIndex).toBe(8);
   });
+
+  it('filters out empty-title links', () => {
+    expect(parseLinks('[[ ]]')).toHaveLength(0);
+    expect(parseLinks('[[]]')).toHaveLength(0);
+    expect(parseLinks('[[ ]] and [[Real]]')).toHaveLength(1);
+  });
+
+  it('treats [[a|]] as having an empty alias', () => {
+    const links = parseLinks('[[target|]]');
+    expect(links).toHaveLength(1);
+    expect(links[0].targetTitle).toBe('target');
+    // 别名语法存在但为空，displayText 为空串而非回退到目标
+    expect(links[0].displayText).toBe('');
+  });
+
+  it('trims alias whitespace but keeps alias semantics', () => {
+    const links = parseLinks('[[target|  alias  ]]');
+    expect(links[0].displayText).toBe('alias');
+  });
+
+  it('does not match nested opening brackets as one link', () => {
+    // 目标字符类排除 '['，外层 [[a[[b]] 只应匹配出内层的 [[b]]
+    const links = parseLinks('[[a[[b]]');
+    expect(links).toHaveLength(1);
+    expect(links[0].targetTitle).toBe('b');
+  });
+
+  it('parses Chinese titles and aliases', () => {
+    const links = parseLinks('参考 [[知识图谱|图谱说明]] 与 [[读书笔记]]');
+    expect(links).toHaveLength(2);
+    expect(links[0].targetTitle).toBe('知识图谱');
+    expect(links[0].displayText).toBe('图谱说明');
+    expect(links[1].targetTitle).toBe('读书笔记');
+    expect(links[1].displayText).toBe('读书笔记');
+  });
+
+  it('does not share lastIndex state across calls', () => {
+    // 多次交替调用不应因全局正则 lastIndex 残留而漏匹配
+    expect(parseLinks('[[A]]')).toHaveLength(1);
+    expect(parseLinks('[[B]]')).toHaveLength(1);
+    expect(parseLinks('[[A]]')).toHaveLength(1);
+  });
 });
 
 describe('parseContentToNodes', () => {
@@ -73,12 +116,23 @@ describe('parseContentToNodes', () => {
     expect(nodes).toHaveLength(1);
     expect(nodes[0]).toEqual({ type: 'text', content: 'plain text' });
   });
+
+  it('ignores empty-title links in node stream', () => {
+    const nodes = parseContentToNodes('a [[ ]] b');
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0]).toEqual({ type: 'text', content: 'a [[ ]] b' });
+  });
 });
 
 describe('extractLinksFromNote', () => {
   it('extracts unique link targets', () => {
     const targets = extractLinksFromNote('[[A]] and [[A]] and [[B]]');
     expect(targets).toEqual(['A', 'B']);
+  });
+
+  it('dedupes case-insensitively and keeps first original spelling', () => {
+    const targets = extractLinksFromNote('[[Note A]] then [[note a]] then [[NOTE A]]');
+    expect(targets).toEqual(['Note A']);
   });
 
   it('returns empty for no links', () => {
@@ -99,6 +153,11 @@ describe('findBacklinks', () => {
     expect(backlinks.map((b) => b.noteId)).toEqual(['1', '3']);
   });
 
+  it('matches target with surrounding whitespace', () => {
+    const backlinks = findBacklinks(notes, '  Note B  ');
+    expect(backlinks).toHaveLength(2);
+  });
+
   it('returns empty when no backlinks', () => {
     expect(findBacklinks(notes, 'Note A')).toHaveLength(0);
   });
@@ -106,6 +165,45 @@ describe('findBacklinks', () => {
   it('includes context around link', () => {
     const backlinks = findBacklinks(notes, 'Note B');
     expect(backlinks[0].context).toContain('Note B');
+  });
+
+  it('collapses whitespace in context', () => {
+    const spaced = [
+      { id: '1', title: 'A', content: 'line one\n\n   links to [[B]]\n next' },
+    ];
+    const backlinks = findBacklinks(spaced, 'B');
+    expect(backlinks[0].context).toBe('...line one links to [[B]] next...');
+  });
+
+  it('slices context by code points without breaking surrogate pairs', () => {
+    const emojiPrefix = '😀'.repeat(60);
+    const notesWithEmoji = [
+      { id: '1', title: 'A', content: `${emojiPrefix} link [[B]]` },
+    ];
+    const backlinks = findBacklinks(notesWithEmoji, 'B');
+    expect(backlinks).toHaveLength(1);
+    expect(backlinks[0].context).toContain('[[B]]');
+    // 上下文最多保留链接前 50 个码点，且不产生孤立代理字符
+    expect(backlinks[0].context).toContain('😀');
+    expect(backlinks[0].context).not.toContain('\uFFFD');
+  });
+
+  it('pins one-backlink-per-note semantics', () => {
+    const multi = [
+      { id: '1', title: 'A', content: '[[B]] once and [[B]] twice and [[B]] thrice' },
+    ];
+    const backlinks = findBacklinks(multi, 'B');
+    expect(backlinks).toHaveLength(1);
+    expect(backlinks[0].noteId).toBe('1');
+  });
+
+  it('includes self-referencing backlinks', () => {
+    const selfRef = [
+      { id: '1', title: 'A', content: 'See also [[A]] itself' },
+    ];
+    const backlinks = findBacklinks(selfRef, 'A');
+    expect(backlinks).toHaveLength(1);
+    expect(backlinks[0].noteId).toBe('1');
   });
 });
 
@@ -120,11 +218,40 @@ describe('findUnresolvedLinks', () => {
     expect(unresolved[0].targetTitle).toBe('C');
   });
 
+  it('ignores case and surrounding whitespace when matching titles', () => {
+    const notes = [
+      { id: '1', title: ' A ', content: '[[a]]' },
+      { id: '2', title: 'B', content: '[[ A ]]' },
+    ];
+    expect(findUnresolvedLinks(notes)).toHaveLength(0);
+  });
+
   it('returns empty when all links resolved', () => {
     const notes = [
       { id: '1', title: 'A', content: '[[B]]' },
       { id: '2', title: 'B', content: '' },
     ];
     expect(findUnresolvedLinks(notes)).toHaveLength(0);
+  });
+});
+
+describe('resolveNoteByTitle', () => {
+  const notes = [
+    { id: '1', title: 'Dup', updatedAt: '2024-01-01T00:00:00.000Z' },
+    { id: '2', title: 'dup', updatedAt: '2024-06-01T00:00:00.000Z' },
+    { id: '3', title: 'Other', updatedAt: '2024-03-01T00:00:00.000Z' },
+  ];
+
+  it('resolves case-insensitively and trims whitespace', () => {
+    expect(resolveNoteByTitle(notes, '  OTHER  ')?.id).toBe('3');
+  });
+
+  it('picks the most recently updated note among duplicates', () => {
+    expect(resolveNoteByTitle(notes, 'Dup')?.id).toBe('2');
+    expect(resolveNoteByTitle(notes, 'DUP')?.id).toBe('2');
+  });
+
+  it('returns undefined when no note matches', () => {
+    expect(resolveNoteByTitle(notes, 'Missing')).toBeUndefined();
   });
 });

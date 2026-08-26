@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { defaultUrlTransform } from 'react-markdown';
 
 interface MarkdownPreviewProps {
   content: string;
@@ -8,6 +8,8 @@ interface MarkdownPreviewProps {
 
 const INTERNAL_LINK_PATTERN = /\[\[([^\]|]+)(\|([^\]]*))?\]\]/g;
 const INTERNAL_LINK_PREFIX = 'note://internal/';
+// 附件图片自定义协议（如 vault-img://attachments/xxx.png）
+const VAULT_IMG_PREFIX = 'vault-img://';
 
 // Placeholder prefix using a UUID-like token to avoid collisions with real content
 const PLACEHOLDER_PREFIX = '\x00WIKI_';
@@ -15,14 +17,15 @@ const PLACEHOLDER_PREFIX = '\x00WIKI_';
 function encodeInternalLinks(content: string): string {
   const placeholders: string[] = [];
 
-  // Step 1: Protect fenced code blocks (``` ... ```)
-  let processed = content.replace(/```[\s\S]*?```/g, (match) => {
+  // Step 1: Protect fenced code blocks (``` or ~~~ fences, including unclosed ones)
+  // 结束条件：同行的闭合围栏，或真正的字符串末尾（$(?![\s\S]) 避免 m 模式下 $ 匹配行尾）
+  let processed = content.replace(/^(`{3,}|~{3,}).*$([\s\S]*?)(?:^\1[ \t]*$|$(?![\s\S]))/gm, (match) => {
     placeholders.push(match);
     return `${PLACEHOLDER_PREFIX}${placeholders.length - 1}\x00`;
   });
 
-  // Step 2: Protect inline code (`...`)
-  processed = processed.replace(/`[^`\n]+`/g, (match) => {
+  // Step 2: Protect inline code (`...` and ``...`` code spans)
+  processed = processed.replace(/(`{1,2})(?!`)([\s\S]*?)\1(?!`)/g, (match) => {
     placeholders.push(match);
     return `${PLACEHOLDER_PREFIX}${placeholders.length - 1}\x00`;
   });
@@ -83,6 +86,15 @@ export const MarkdownPreview: React.FC<MarkdownPreviewProps> = React.memo(({ con
     ),
   }), [onLinkClick]);
 
+  // v10 默认会清空 note:// 等自定义协议的 href/src，需先放行内部双链与附件图片
+  const urlTransform = useMemo(
+    () => (url: string) =>
+      url.startsWith(INTERNAL_LINK_PREFIX) || url.startsWith(VAULT_IMG_PREFIX)
+        ? url
+        : defaultUrlTransform(url),
+    []
+  );
+
   if (!content.trim()) {
     return (
       <div className="markdown-preview empty">
@@ -93,7 +105,7 @@ export const MarkdownPreview: React.FC<MarkdownPreviewProps> = React.memo(({ con
 
   return (
     <div className="markdown-preview">
-      <ReactMarkdown components={components}>
+      <ReactMarkdown components={components} urlTransform={urlTransform}>
         {markdownContent}
       </ReactMarkdown>
     </div>

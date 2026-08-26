@@ -1,25 +1,19 @@
-import type { Note } from '../types/note';
+import type { Note, NoteWithScore, SearchMatch } from '../types/note';
 
-export type SearchMatch = {
-  type: 'title' | 'tag' | 'content';
-  index: number;
-  length: number;
-};
-
-export type NoteWithScore = Note & {
-  _searchScore: number;
-  _searchMatches: SearchMatch[];
-};
+export type { NoteWithScore, SearchMatch } from '../types/note';
 
 export function filterNotes(
   notes: Note[],
   searchQuery: string,
   selectedTag: string | null
-): Note[] {
+): NoteWithScore[] {
   let filtered = notes;
 
   if (selectedTag) {
-    filtered = filtered.filter((note) => note.tags.includes(selectedTag));
+    const wantedTag = selectedTag.toLowerCase();
+    filtered = filtered.filter((note) =>
+      note.tags.some((tag) => tag.toLowerCase() === wantedTag)
+    );
   }
 
   if (searchQuery.trim()) {
@@ -63,7 +57,8 @@ export function filterNotes(
     return scored;
   }
 
-  return filtered;
+  // 无搜索词时也补齐评分字段，保持返回类型一致
+  return filtered.map((note) => ({ ...note, _searchScore: 0, _searchMatches: [] }));
 }
 
 export function getTagStats(notes: Note[]): { name: string; count: number }[] {
@@ -71,8 +66,9 @@ export function getTagStats(notes: Note[]): { name: string; count: number }[] {
 
   notes.forEach((note) => {
     note.tags.forEach((tag) => {
-      if (tag.trim()) {
-        tagMap.set(tag, (tagMap.get(tag) || 0) + 1);
+      const name = tag.trim();
+      if (name) {
+        tagMap.set(name, (tagMap.get(name) || 0) + 1);
       }
     });
   });
@@ -85,8 +81,13 @@ export function getTagStats(notes: Note[]): { name: string; count: number }[] {
     });
 }
 
+function toTime(dateString: string): number {
+  const time = new Date(dateString).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
 export function getRecentNotes(notes: Note[], limit: number = 5): Note[] {
   return [...notes]
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    .sort((a, b) => toTime(b.updatedAt) - toTime(a.updatedAt))
     .slice(0, limit);
 }

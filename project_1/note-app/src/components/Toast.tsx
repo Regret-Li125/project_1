@@ -33,7 +33,12 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onDismiss }) => {
   }, [toast, onDismiss]);
 
   return (
-    <div className={`toast-item toast-${toast.type}`} onClick={() => onDismiss(toast.id)}>
+    <div
+      className={`toast-item toast-${toast.type}`}
+      role="status"
+      aria-live="polite"
+      onClick={() => onDismiss(toast.id)}
+    >
       <span className="toast-icon">
         {toast.type === 'success' && '✓'}
         {toast.type === 'error' && '✕'}

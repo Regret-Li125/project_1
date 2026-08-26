@@ -19,15 +19,22 @@ export const notesApi: NotesDesktopApi = {
     }
     // Fallback for development without Electron
     console.warn('[notesApi] Running outside Electron — data stored in localStorage (not persisted to disk).');
+    const data = localStorage.getItem('personal_knowledge_notes');
+    if (!data) return { notes: [], folders: [] };
     try {
-      const data = localStorage.getItem('personal_knowledge_notes');
-      if (!data) return { notes: [], folders: [] };
       const parsed = JSON.parse(data);
       return {
         notes: Array.isArray(parsed.notes) ? parsed.notes : [],
         folders: Array.isArray(parsed.folders) ? parsed.folders : [],
       };
-    } catch {
+    } catch (error) {
+      // 解析失败：备份原始字符串到另一个 key，避免覆盖丢失，再返回空数据
+      console.error('[notesApi] Failed to parse localStorage data, backing up raw string.', error);
+      try {
+        localStorage.setItem('personal_knowledge_notes_backup', data);
+      } catch (backupError) {
+        console.error('[notesApi] Failed to back up raw data:', backupError);
+      }
       return { notes: [], folders: [] };
     }
   },

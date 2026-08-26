@@ -6,7 +6,7 @@ type ExportFormat = 'markdown-zip' | 'html-zip' | 'markdown-dir' | 'html-dir';
 interface ShareConfirmDialogProps {
   isOpen: boolean;
   shareResult: ShareResult;
-  onConfirm: (format: ExportFormat) => void;
+  onConfirm: (format: ExportFormat) => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -17,14 +17,31 @@ export const ShareConfirmDialog: React.FC<ShareConfirmDialogProps> = ({
   onCancel,
 }) => {
   const [selectedFormat, setSelectedFormat] = React.useState<ExportFormat>('markdown-zip');
+  const [isExporting, setIsExporting] = React.useState(false);
 
   if (!isOpen) return null;
 
   const hasSourceUrl = shareResult.notes.some((n) => n.sourceUrl);
   const hasTags = shareResult.notes.some((n) => n.tags.length > 0);
+  const canConfirm = !isExporting && shareResult.noteCount > 0;
+
+  const handleConfirm = async () => {
+    if (!canConfirm) return;
+    setIsExporting(true);
+    try {
+      await onConfirm(selectedFormat);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
-    <div className="share-confirm-overlay" onClick={onCancel}>
+    <div
+      className="share-confirm-overlay"
+      onClick={() => {
+        if (!isExporting) onCancel();
+      }}
+    >
       <div className="share-confirm-dialog" onClick={(e) => e.stopPropagation()}>
         <h2 className="share-confirm-title">确认导出</h2>
         
@@ -109,14 +126,19 @@ export const ShareConfirmDialog: React.FC<ShareConfirmDialogProps> = ({
         </div>
 
         <div className="share-confirm-actions">
-          <button className="share-confirm-cancel" onClick={onCancel}>
+          <button
+            className="share-confirm-cancel"
+            onClick={onCancel}
+            disabled={isExporting}
+          >
             取消
           </button>
           <button
             className="share-confirm-submit"
-            onClick={() => onConfirm(selectedFormat)}
+            onClick={() => void handleConfirm()}
+            disabled={!canConfirm}
           >
-            确认导出
+            {isExporting ? '正在导出…' : '确认导出'}
           </button>
         </div>
       </div>

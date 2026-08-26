@@ -11,7 +11,7 @@
     "dev": "vite --configLoader native",
     "build": "tsc -b && vite build --configLoader native",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -b",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -34,8 +34,7 @@
       "target": [
         "nsis",
         "portable"
-      ],
-      "signAndEditExecutable": false
+      ]
     },
     "nsis": {
       "oneClick": false,
@@ -50,10 +49,7 @@
   },
   "dependencies": {
     "archiver": "^7.0.1",
-    "js-yaml": "^4.1.1",
-    "react": "^19.2.5",
-    "react-dom": "^19.2.5",
-    "react-markdown": "^10.1.0"
+    "js-yaml": "^4.1.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -62,12 +58,15 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "concurrently": "^8.0.0",
-    "electron": "^28.3.3",
+    "electron": "^43.1.1",
     "electron-builder": "^26.15.3",
     "eslint": "^10.2.1",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "react-markdown": "^10.1.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.2",
     "vite": "^8.0.10",

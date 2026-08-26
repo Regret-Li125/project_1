@@ -10,8 +10,7 @@ interface NoteListProps {
   selectedTag: string | null;
   onNoteSelect: (noteId: string) => void;
   onNewNote: () => void;
-  onClearSearch: () => void;
-  onClearTag: () => void;
+  onClearFilter: () => void;
 }
 
 export const NoteList: React.FC<NoteListProps> = React.memo(({
@@ -21,8 +20,7 @@ export const NoteList: React.FC<NoteListProps> = React.memo(({
   selectedTag,
   onNoteSelect,
   onNewNote,
-  onClearSearch,
-  onClearTag,
+  onClearFilter,
 }) => {
   if (notes.length === 0) {
     if (searchQuery || selectedTag) {
@@ -30,7 +28,7 @@ export const NoteList: React.FC<NoteListProps> = React.memo(({
         <EmptyState
           message="没有找到匹配的笔记"
           actionText="清除筛选"
-          onAction={searchQuery ? onClearSearch : onClearTag}
+          onAction={onClearFilter}
         />
       );
     }

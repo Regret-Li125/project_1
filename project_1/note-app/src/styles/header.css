@@ -55,7 +55,8 @@
 }
 
 .command-palette-btn,
-.quick-capture-btn {
+.quick-capture-btn,
+.settings-btn {
   padding: 6px 12px;
   background: none;
   border: 1px solid var(--border-color);
@@ -68,8 +69,36 @@
 }
 
 .command-palette-btn:hover,
-.quick-capture-btn:hover {
+.quick-capture-btn:hover,
+.settings-btn:hover {
   background-color: var(--hover-bg);
+}
+
+/* 设置按钮（齿轮图标 + 文字） */
+.settings-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.settings-btn svg {
+  display: block;
+}
+
+/* 语义搜索占位 badge（§2.1 入口占位，禁用态） */
+.semantic-search-badge {
+  padding: 3px 8px;
+  background-color: var(--tag-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: not-allowed;
+  white-space: nowrap;
+}
+
+.semantic-search-badge:disabled {
+  opacity: 0.75;
 }
 
 .theme-toggle-btn {

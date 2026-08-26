@@ -157,6 +157,160 @@
   color: var(--text-muted);
 }
 
+/* AI 工具区 */
+.ai-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ai-btn {
+  padding: 6px 12px;
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ai-btn:hover:not(:disabled) {
+  background-color: var(--hover-bg);
+  color: var(--text-color);
+  border-color: var(--primary-color);
+}
+
+.ai-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* AI 摘要预览条 */
+.ai-summary-panel {
+  margin-bottom: 16px;
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--primary-color);
+  border-radius: 8px;
+  background-color: var(--content-bg);
+}
+
+.ai-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.ai-summary-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.ai-summary-toggle:hover {
+  color: var(--text-color);
+}
+
+.ai-summary-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-insert-btn {
+  padding: 4px 10px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.ai-insert-btn:hover {
+  background-color: var(--primary-hover);
+}
+
+.ai-summary-body {
+  padding: 0 12px 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* AI 推荐标签 */
+.ai-suggested-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.ai-suggested-label {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.ai-suggested-tag {
+  padding: 4px 10px;
+  background-color: var(--tag-bg);
+  border: 1px dashed var(--primary-color);
+  border-radius: 12px;
+  font-size: 13px;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.ai-suggested-tag:hover {
+  background-color: var(--tag-hover-bg);
+}
+
+.ai-add-all-btn {
+  padding: 4px 10px;
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--primary-color);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ai-add-all-btn:hover {
+  background-color: var(--selected-bg);
+  border-color: var(--primary-color);
+}
+
+.ai-close-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.ai-close-btn:hover {
+  color: var(--danger-color);
+}
+
+.ai-error {
+  margin: 8px 0 12px;
+  font-size: 13px;
+  color: var(--error-color);
+}
+
 /* 编辑器内容区 */
 .editor-content {
   display: flex;

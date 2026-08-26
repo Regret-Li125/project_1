@@ -26,9 +26,9 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       <p className="empty-title">{message}</p>
       {description && <p className="empty-description">{description}</p>}
       <div className="empty-actions">
-        {actions?.map((action, index) => (
+        {actions?.map((action) => (
           <button
-            key={index}
+            key={action.label}
             className={`empty-action-btn ${action.variant || 'primary'}`}
             onClick={action.onClick}
           >

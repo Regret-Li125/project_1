@@ -1,5 +1,8 @@
 export function formatDate(dateString: string): string {
   const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) {
+    return '-';
+  }
   const now = new Date();
   const diff = now.getTime() - date.getTime();
   
@@ -36,6 +39,9 @@ export function formatDate(dateString: string): string {
 
 export function formatDateTime(dateString: string): string {
   const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) {
+    return '-';
+  }
   return date.toLocaleString('zh-CN', {
     year: 'numeric',
     month: '2-digit',

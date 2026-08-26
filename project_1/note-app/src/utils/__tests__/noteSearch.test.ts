@@ -72,6 +72,67 @@ describe('filterNotes', () => {
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('1');
   });
+
+  it('matches Chinese query against title and content', () => {
+    const cnNotes = [
+      makeNote({ id: '1', title: '知识库搭建指南', content: '如何构建个人知识体系', tags: [] }),
+      makeNote({ id: '2', title: '健身计划', content: '每周三次训练', tags: [] }),
+    ];
+    const result = filterNotes(cnNotes, '知识', null);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('1');
+  });
+
+  it('treats regex metacharacters as literal text', () => {
+    const specialNotes = [
+      makeNote({ id: '1', title: 'C++ 入门', content: '', tags: [] }),
+      makeNote({ id: '2', title: 'C 语言 (基础)', content: '', tags: [] }),
+      makeNote({ id: '3', title: 'axb pattern', content: '', tags: [] }),
+    ];
+    expect(filterNotes(specialNotes, 'c++', null).map((n) => n.id)).toEqual(['1']);
+    expect(filterNotes(specialNotes, '(基础)', null).map((n) => n.id)).toEqual(['2']);
+    // 'a.b' 不应按正则匹配到 'axb'
+    expect(filterNotes(specialNotes, 'a.b', null)).toHaveLength(0);
+  });
+
+  it('filters tags case-insensitively', () => {
+    expect(filterNotes(notes, '', 'REACT').map((n) => n.id)).toEqual(['1', '3']);
+    expect(filterNotes(notes, '', 'React')).toHaveLength(2);
+  });
+
+  it('treats whitespace-only query as no query', () => {
+    const result = filterNotes(notes, '   ', null);
+    expect(result).toHaveLength(4);
+    expect(result[0]._searchScore).toBe(0);
+    expect(result[0]._searchMatches).toEqual([]);
+  });
+
+  it('provides _searchMatches indexes consistent with original strings', () => {
+    const mixedNotes = [
+      makeNote({
+        id: '1',
+        title: 'React 指南',
+        content: '从 Hook 开始学 React',
+        tags: ['前端React'],
+      }),
+    ];
+    const result = filterNotes(mixedNotes, 'react', null);
+    expect(result).toHaveLength(1);
+    const note = result[0];
+    expect(note._searchScore).toBeGreaterThan(0);
+    expect(note._searchMatches.length).toBeGreaterThan(0);
+    for (const match of note._searchMatches) {
+      const source =
+        match.type === 'title'
+          ? note.title
+          : match.type === 'tag'
+            ? (note.tags.find((t) => t.toLowerCase().includes('react')) ?? '')
+            : note.content;
+      expect(
+        source.substring(match.index, match.index + match.length).toLowerCase()
+      ).toBe('react');
+    }
+  });
 });
 
 describe('getTagStats', () => {
@@ -98,6 +159,12 @@ describe('getTagStats', () => {
     const stats = getTagStats(notes);
     expect(stats.map((s) => s.name)).toEqual(['a', 'b', 'c']);
   });
+
+  it('trims tag names before counting', () => {
+    const notes = [makeNote({ tags: [' react ', 'react', '  '] })];
+    const stats = getTagStats(notes);
+    expect(stats).toEqual([{ name: 'react', count: 2 }]);
+  });
 });
 
 describe('getRecentNotes', () => {
@@ -117,5 +184,14 @@ describe('getRecentNotes', () => {
       makeNote({ id: '2', updatedAt: '2026-02-01T00:00:00Z' }),
     ];
     expect(getRecentNotes(notes, 1)).toHaveLength(1);
+  });
+
+  it('falls back safely for invalid updatedAt dates', () => {
+    const notes = [
+      makeNote({ id: '1', updatedAt: 'not-a-date' }),
+      makeNote({ id: '2', updatedAt: '2026-02-01T00:00:00Z' }),
+    ];
+    const recent = getRecentNotes(notes, 2);
+    expect(recent.map((n) => n.id)).toEqual(['2', '1']);
   });
 });

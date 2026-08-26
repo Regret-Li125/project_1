@@ -6,7 +6,7 @@ interface TagListProps {
   onTagSelect: (tag: string | null) => void;
 }
 
-export const TagList: React.FC<TagListProps> = ({
+export const TagList: React.FC<TagListProps> = React.memo(({
   tags,
   selectedTag,
   onTagSelect,
@@ -41,4 +41,4 @@ export const TagList: React.FC<TagListProps> = ({
       </ul>
     </div>
   );
-};
+});
